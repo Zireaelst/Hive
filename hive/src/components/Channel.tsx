@@ -4,6 +4,7 @@ import { useMessaging } from '../hooks/useMessaging';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { formatTimestamp, formatAddress } from '../utils/formatters';
 import { trackEvent, trackError, AnalyticsEvents } from '../utils/analytics';
+import { walrusService } from '../services/walrusService';
 
 interface ChannelProps {
   channelId: string;
@@ -30,6 +31,9 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
   } = useMessaging();
 
   const [messageText, setMessageText] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch channel and messages on mount
   useEffect(() => {
@@ -65,17 +69,40 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!messageText.trim() || isSendingMessage) {
+    if ((!messageText.trim() && !selectedFile) || isSendingMessage || isUploading) {
       return;
     }
 
-    const result = await sendMessage(channelId, messageText);
+    let messageContent = messageText;
+    
+    // Handle file upload to Walrus
+    if (selectedFile) {
+      setIsUploading(true);
+      try {
+        // Upload file to Walrus
+        const fileInfo = await walrusService.uploadFile(selectedFile);
+        
+        // Create message with Walrus file info
+        const fileSize = walrusService.formatFileSize(fileInfo.fileSize);
+        messageContent = `📎 ${fileInfo.fileName} (${fileSize})\n${messageText || 'File shared'}\n\n[Walrus: ${fileInfo.blobId}]`;
+      } catch (error) {
+        console.error('File upload error:', error);
+        setIsUploading(false);
+        alert('Failed to upload file to Walrus. Please try again.');
+        return;
+      }
+    }
+
+    const result = await sendMessage(channelId, messageContent);
     if (result) {
       setMessageText(''); // Clear input on success
+      setSelectedFile(null); // Clear selected file
+      setIsUploading(false);
       // Track successful message send
       trackEvent(AnalyticsEvents.MESSAGE_SENT, {
         channel_id: channelId,
-        message_length: messageText.length,
+        message_length: messageContent.length,
+        has_file: selectedFile ? 1 : 0,
       });
       // Track interaction for feedback
       if (onInteraction) {
@@ -86,7 +113,94 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
       trackError('message_send', channelError, {
         channel_id: channelId,
       });
+      setIsUploading(false);
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB');
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const downloadFile = async (blobId: string, fileName: string) => {
+    try {
+      const blob = await walrusService.downloadFile(blobId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download file from Walrus');
+    }
+  };
+
+  const parseFileMessage = (messageText: string) => {
+    // Parse Walrus file message format
+    const walrusMatch = messageText.match(/📎 (.+?) \((.+?)\)\n(.*?)\n\n\[Walrus: (.+?)\]/s);
+    if (walrusMatch) {
+      return {
+        fileName: walrusMatch[1],
+        fileSize: walrusMatch[2],
+        message: walrusMatch[3],
+        blobId: walrusMatch[4],
+        isWalrus: true
+      };
+    }
+    
+    // Fallback for old IndexedDB format
+    const fileMatch = messageText.match(/📎 (.+?) \((.+?)\)\n(.*?)\n\n\[FileID: (.+?)\]/s);
+    if (fileMatch) {
+      return {
+        fileName: fileMatch[1],
+        fileSize: fileMatch[2],
+        message: fileMatch[3],
+        fileId: fileMatch[4],
+        isIndexedDB: true
+      };
+    }
+    
+    // Fallback for old base64 format
+    const oldFileMatch = messageText.match(/📎 (.+?) \((.+?)\)\n(.*?)\n\n\[File: (.+?)\]\.\.\./s);
+    if (oldFileMatch) {
+      return {
+        fileName: oldFileMatch[1],
+        fileSize: oldFileMatch[2],
+        message: oldFileMatch[3],
+        fileData: oldFileMatch[4],
+        isLegacy: true
+      };
+    }
+    
+    // Fallback for very old format without size
+    const veryOldFileMatch = messageText.match(/📎 (.+?)\n(.*?)\n\n\[File: (.+?)\]\.\.\./s);
+    if (veryOldFileMatch) {
+      return {
+        fileName: veryOldFileMatch[1],
+        message: veryOldFileMatch[2],
+        fileData: veryOldFileMatch[3],
+        isLegacy: true
+      };
+    }
+    return null;
   };
 
   const handleLoadMore = () => {
@@ -194,6 +308,8 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
           <Flex direction="column" gap="2">
             {messages.map((message, index) => {
               const isOwnMessage = message.sender === currentAccount?.address;
+              const fileInfo = parseFileMessage(message.text);
+              
               return (
                 <Box
                   key={index}
@@ -216,13 +332,123 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
                       <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
                         {isOwnMessage ? 'You' : formatAddress(message.sender)}
                       </Text>
-                      <Text size="2" style={{ 
-                        color: 'var(--color-message-text)',
-                        wordWrap: 'break-word',
-                        whiteSpace: 'pre-wrap'
-                      }}>
-                        {message.text}
-                      </Text>
+                      
+                      {fileInfo ? (
+                        <Box>
+                          {/* Show image directly if it's a Walrus image */}
+                          {fileInfo.isWalrus && fileInfo.blobId && walrusService.isImageFile(fileInfo.fileName) ? (
+                            <Box style={{ marginBottom: '8px' }}>
+                              <img 
+                                src={walrusService.getFileUrl(fileInfo.blobId)} 
+                                alt={fileInfo.fileName}
+                                style={{
+                                  maxWidth: '300px',
+                                  maxHeight: '300px',
+                                  borderRadius: 'var(--radius-2)',
+                                  objectFit: 'cover',
+                                  cursor: 'pointer'
+                                }}
+                                onClick={() => {
+                                  // Open image in new tab on click
+                                  window.open(walrusService.getFileUrl(fileInfo.blobId), '_blank');
+                                }}
+                              />
+                              <Flex align="center" gap="2" style={{ marginTop: '4px' }}>
+                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                                  {fileInfo.fileName} ({fileInfo.fileSize})
+                                </Text>
+                                <Button
+                                  size="1"
+                                  variant="soft"
+                                  onClick={() => downloadFile(fileInfo.blobId, fileInfo.fileName)}
+                                  style={{
+                                    backgroundColor: 'var(--color-button-secondary)',
+                                    color: 'var(--color-text-primary)',
+                                    fontSize: '10px',
+                                    padding: '1px 6px'
+                                  }}
+                                >
+                                  Download
+                                </Button>
+                              </Flex>
+                            </Box>
+                          ) : (
+                            /* Show file info for non-image files */
+                            <Flex align="center" gap="2" style={{ marginBottom: '8px' }}>
+                              <Text size="2">📎</Text>
+                              <Text size="2" weight="bold" style={{ color: 'var(--color-message-text)' }}>
+                                {fileInfo.fileName}
+                              </Text>
+                              {fileInfo.fileSize && (
+                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                                  ({fileInfo.fileSize})
+                                </Text>
+                              )}
+                              <Button
+                                size="1"
+                                variant="soft"
+                                onClick={() => {
+                                  if (fileInfo.isWalrus && fileInfo.blobId) {
+                                    // Handle Walrus files
+                                    downloadFile(fileInfo.blobId, fileInfo.fileName);
+                                  } else if (fileInfo.isLegacy) {
+                                    // Handle legacy base64 files
+                                    const base64 = fileInfo.fileData.includes(',') ? fileInfo.fileData.split(',')[1] : fileInfo.fileData;
+                                    const byteCharacters = atob(base64);
+                                    const byteNumbers = new Array(byteCharacters.length);
+                                    
+                                    for (let i = 0; i < byteCharacters.length; i++) {
+                                      byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                    }
+                                    
+                                    const byteArray = new Uint8Array(byteNumbers);
+                                    const blob = new Blob([byteArray]);
+                                    const url = window.URL.createObjectURL(blob);
+                                    
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = fileInfo.fileName;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    window.URL.revokeObjectURL(url);
+                                  } else if (fileInfo.isIndexedDB && fileInfo.fileId) {
+                                    // Handle IndexedDB files (fallback)
+                                    alert('This file format is no longer supported. Please ask the sender to resend the file.');
+                                  }
+                                }}
+                                style={{
+                                  backgroundColor: 'var(--color-button-secondary)',
+                                  color: 'var(--color-text-primary)',
+                                  fontSize: '12px',
+                                  padding: '2px 8px'
+                                }}
+                              >
+                                Download
+                              </Button>
+                            </Flex>
+                          )}
+                          {fileInfo.message && fileInfo.message !== 'File shared' && (
+                            <Text size="2" style={{ 
+                              color: 'var(--color-message-text)',
+                              wordWrap: 'break-word',
+                              whiteSpace: 'pre-wrap',
+                              marginBottom: '8px'
+                            }}>
+                              {fileInfo.message}
+                            </Text>
+                          )}
+                        </Box>
+                      ) : (
+                        <Text size="2" style={{ 
+                          color: 'var(--color-message-text)',
+                          wordWrap: 'break-word',
+                          whiteSpace: 'pre-wrap'
+                        }}>
+                          {message.text}
+                        </Text>
+                      )}
+                      
                       <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
                         {formatTimestamp(message.createdAtMs)}
                       </Text>
@@ -255,14 +481,68 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
 
       {/* Message Input */}
       <Box p="3" style={{ borderTop: '1px solid var(--color-border-primary)' }}>
+        {/* File Preview */}
+        {selectedFile && (
+          <Box p="2" style={{ 
+            backgroundColor: 'var(--color-background-secondary)', 
+            borderRadius: 'var(--radius-2)',
+            marginBottom: '8px',
+            border: '1px solid var(--color-border-primary)'
+          }}>
+            <Flex justify="between" align="center">
+              <Flex align="center" gap="2">
+                <Text size="2">📎</Text>
+                <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                  {selectedFile.name} ({walrusService.formatFileSize(selectedFile.size)})
+                </Text>
+                {isUploading && (
+                  <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                    Uploading to Walrus...
+                  </Text>
+                )}
+              </Flex>
+              <Button
+                size="1"
+                variant="ghost"
+                onClick={handleRemoveFile}
+                style={{ color: 'var(--color-text-muted)' }}
+                disabled={isUploading}
+              >
+                ✕
+              </Button>
+            </Flex>
+          </Box>
+        )}
+
         <form onSubmit={handleSendMessage}>
           <Flex gap="2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+            />
+            <Button
+              size="3"
+              type="button"
+              variant="soft"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isSendingMessage || isUploading || !isReady}
+              style={{
+                backgroundColor: 'var(--color-background-secondary)',
+                color: 'var(--color-text-primary)',
+                border: '1px solid var(--color-border-primary)'
+              }}
+            >
+              📎
+            </Button>
             <TextField.Root
               size="3"
               placeholder="Type a message..."
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
-              disabled={isSendingMessage || !isReady}
+              disabled={isSendingMessage || isUploading || !isReady}
               style={{ 
                 flex: 1,
                 backgroundColor: 'var(--color-input-background)',
@@ -273,13 +553,13 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
             <Button
               size="3"
               type="submit"
-              disabled={!messageText.trim() || isSendingMessage || !isReady}
+              disabled={(!messageText.trim() && !selectedFile) || isSendingMessage || isUploading || !isReady}
               style={{
                 backgroundColor: 'var(--color-button-primary)',
                 color: 'var(--color-button-text)'
               }}
             >
-              {isSendingMessage ? 'Sending...' : 'Send'}
+              {isSendingMessage || isUploading ? 'Sending...' : 'Send'}
             </Button>
           </Flex>
         </form>

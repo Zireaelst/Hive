@@ -1,11 +1,11 @@
 import { useMessaging } from '../hooks/useMessaging';
 import { useCurrentAccount } from '@mysten/dapp-kit';
-import { Box, Card, Text, Badge, Flex, Separator, Button } from '@radix-ui/themes';
+import { Card, Text, Flex, Button } from '@radix-ui/themes';
 import { useSessionKey } from '../providers/SessionKeyProvider';
 
 export function MessagingStatus() {
   const currentAccount = useCurrentAccount();
-  const { client, sessionKey, isInitializing, error, isReady } = useMessaging();
+  const { sessionKey, isInitializing, error, isReady } = useMessaging();
   const { initializeManually } = useSessionKey();
 
   return (

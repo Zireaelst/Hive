@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Flex, Heading, Text, Button, Card } from '@radix-ui/themes';
+import { Box, Flex, Heading, Text, Button } from '@radix-ui/themes';
 import hivelogo from "../assets/hivelogo.png";
 
 interface LandingPageProps {

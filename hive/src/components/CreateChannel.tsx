@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Flex, Text, TextField, Button, Separator, Box } from '@radix-ui/themes';
+import { Card, Flex, Text, TextField, Button } from '@radix-ui/themes';
 import { useMessaging } from '../hooks/useMessaging';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { isValidSuiAddress } from '@mysten/sui/utils';
