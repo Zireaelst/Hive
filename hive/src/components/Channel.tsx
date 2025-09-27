@@ -5,6 +5,7 @@ import { useCurrentAccount } from '@mysten/dapp-kit';
 import { formatTimestamp, formatAddress } from '../utils/formatters';
 import { trackEvent, trackError, AnalyticsEvents } from '../utils/analytics';
 import { walrusService } from '../services/walrusService';
+import { suinsService } from '../services/suinsService';
 
 interface ChannelProps {
   channelId: string;
@@ -33,6 +34,7 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
   const [messageText, setMessageText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [addressNames, setAddressNames] = useState<Map<string, string>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch channel and messages on mount
@@ -65,6 +67,35 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
     // Reset the flag after messages update
     isLoadingOlderRef.current = false;
   }, [messages]);
+
+  // Resolve SuiNS names for message senders
+  useEffect(() => {
+    const resolveNames = async () => {
+      if (messages.length === 0) return;
+      
+      const uniqueAddresses = [...new Set(messages.map(msg => msg.sender))];
+      const newNames = new Map(addressNames);
+      
+      for (const address of uniqueAddresses) {
+        if (!newNames.has(address)) {
+          try {
+            const name = await suinsService.getAddressName(address);
+            if (name) {
+              newNames.set(address, name);
+            }
+          } catch (error) {
+            console.warn('Failed to resolve SuiNS name for:', address);
+          }
+        }
+      }
+      
+      if (newNames.size !== addressNames.size) {
+        setAddressNames(newNames);
+      }
+    };
+
+    resolveNames();
+  }, [messages, addressNames]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -330,7 +361,7 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
                   >
                     <Flex direction="column" gap="1">
                       <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                        {isOwnMessage ? 'You' : formatAddress(message.sender)}
+                        {isOwnMessage ? 'You' : (addressNames.get(message.sender) || formatAddress(message.sender))}
                       </Text>
                       
                       {fileInfo ? (
@@ -619,7 +650,7 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
                 </Text>
                 <Flex gap="2" align="center" style={{ marginTop: '0.25rem' }}>
                   <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                    from: {formatAddress(currentChannel.last_message.sender)}
+                    from: {addressNames.get(currentChannel.last_message.sender) || formatAddress(currentChannel.last_message.sender)}
                   </Text>
                   <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
                     • {formatTimestamp(currentChannel.last_message.createdAtMs)}

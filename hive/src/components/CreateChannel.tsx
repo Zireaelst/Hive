@@ -4,6 +4,7 @@ import { useMessaging } from '../hooks/useMessaging';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { isValidSuiAddress } from '@mysten/sui/utils';
 import { trackEvent, trackError, AnalyticsEvents } from '../utils/analytics';
+import { suinsService } from '../services/suinsService';
 
 interface CreateChannelProps {
   onInteraction?: () => void;
@@ -15,6 +16,7 @@ export function CreateChannel({ onInteraction }: CreateChannelProps) {
   const [recipientAddresses, setRecipientAddresses] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isResolving, setIsResolving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,15 +52,31 @@ export function CreateChannel({ onInteraction }: CreateChannelProps) {
       return;
     }
 
-    // Validate each address
-    const invalidAddresses = addresses.filter(addr => !isValidSuiAddress(addr));
-    if (invalidAddresses.length > 0) {
-      setValidationError(`Invalid Sui address(es): ${invalidAddresses.join(', ')}`);
-      return;
+    // Resolve SuiNS names to addresses and validate
+    setIsResolving(true);
+    const resolvedAddresses: string[] = [];
+    
+    for (const addr of addresses) {
+      try {
+        const resolved = await suinsService.resolveToAddress(addr);
+        if (resolved && isValidSuiAddress(resolved)) {
+          resolvedAddresses.push(resolved);
+        } else {
+          setValidationError(`Invalid address or SuiNS name: ${addr}`);
+          setIsResolving(false);
+          return;
+        }
+      } catch (error) {
+        setValidationError(`Failed to resolve: ${addr}`);
+        setIsResolving(false);
+        return;
+      }
     }
+    
+    setIsResolving(false);
 
     // Create channel
-    const result = await createChannel(addresses);
+    const result = await createChannel(resolvedAddresses);
 
     if (result?.channelId) {
       setSuccessMessage(`Channel created successfully! ID: ${result.channelId.slice(0, 10)}...`);
@@ -99,13 +117,13 @@ export function CreateChannel({ onInteraction }: CreateChannelProps) {
 
           <TextField.Root
             size="2"
-            placeholder="Enter Sui addresses..."
+            placeholder="Enter Sui addresses or SuiNS names (e.g., 0x123... or alice.sui)..."
             value={recipientAddresses}
             onChange={(e) => {
               setRecipientAddresses(e.target.value);
               setValidationError(null);
             }}
-            disabled={!isReady || isCreatingChannel}
+            disabled={!isReady || isCreatingChannel || isResolving}
             style={{
               backgroundColor: 'var(--color-input-background)',
               border: '1px solid var(--color-input-border)',
@@ -133,7 +151,7 @@ export function CreateChannel({ onInteraction }: CreateChannelProps) {
 
           <Button
             size="2"
-            disabled={!isReady || isCreatingChannel}
+            disabled={!isReady || isCreatingChannel || isResolving}
             type="submit"
             style={{
               backgroundColor: 'var(--color-button-primary)',
@@ -141,7 +159,7 @@ export function CreateChannel({ onInteraction }: CreateChannelProps) {
               width: '100%'
             }}
           >
-            {isCreatingChannel ? 'Creating...' : 'Create Channel'}
+            {isResolving ? 'Resolving...' : isCreatingChannel ? 'Creating...' : 'Create Channel'}
           </Button>
 
           {!isReady && (
