@@ -85,29 +85,21 @@ export function CreateChannel({ onInteraction }: CreateChannelProps) {
 
   return (
     <Card 
-      mb="4"
       style={{
         backgroundColor: 'var(--color-card-background)',
-        border: '1px solid var(--color-card-border)'
+        border: '1px solid var(--color-card-border)',
+        padding: '1rem'
       }}
     >
       <form onSubmit={handleSubmit}>
-        <Flex direction="column" gap="3">
-          <Box>
-            <Text size="4" weight="bold" style={{ color: 'var(--color-text-primary)' }}>Create New Channel</Text>
-          </Box>
-
-          <Separator size="4" />
-
-          <Box>
-            <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
-              Enter one or more Sui addresses separated by commas to create a private messaging channel.
-            </Text>
-          </Box>
+        <Flex direction="column" gap="2">
+          <Text size="3" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+            Create New Channel
+          </Text>
 
           <TextField.Root
-            size="3"
-            placeholder="Enter Sui addresses (0x..., 0x..., ...)"
+            size="2"
+            placeholder="Enter Sui addresses..."
             value={recipientAddresses}
             onChange={(e) => {
               setRecipientAddresses(e.target.value);
@@ -122,38 +114,39 @@ export function CreateChannel({ onInteraction }: CreateChannelProps) {
           />
 
           {validationError && (
-            <Text size="2" style={{ color: 'var(--color-error)' }}>
+            <Text size="1" style={{ color: 'var(--color-error)' }}>
               {validationError}
             </Text>
           )}
 
           {channelError && (
-            <Text size="2" style={{ color: 'var(--color-error)' }}>
+            <Text size="1" style={{ color: 'var(--color-error)' }}>
               Error: {channelError}
             </Text>
           )}
 
           {successMessage && (
-            <Text size="2" style={{ color: 'var(--color-success)' }}>
+            <Text size="1" style={{ color: 'var(--color-success)' }}>
               {successMessage}
             </Text>
           )}
 
           <Button
-            size="3"
+            size="2"
             disabled={!isReady || isCreatingChannel}
             type="submit"
             style={{
               backgroundColor: 'var(--color-button-primary)',
-              color: 'var(--color-button-text)'
+              color: 'var(--color-button-text)',
+              width: '100%'
             }}
           >
-            {isCreatingChannel ? 'Creating Channel...' : 'Create Channel'}
+            {isCreatingChannel ? 'Creating...' : 'Create Channel'}
           </Button>
 
           {!isReady && (
-            <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
-              Waiting for messaging client to initialize...
+            <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+              Waiting for client...
             </Text>
           )}
         </Flex>

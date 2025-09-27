@@ -28,7 +28,7 @@ const createClient = () => {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <Theme appearance="dark">
+    <Theme appearance="light">
       <QueryClientProvider client={queryClient}>
         <SuiClientProvider createClient={createClient} networks={networkConfig} defaultNetwork="testnet">
           <WalletProvider

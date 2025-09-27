@@ -112,11 +112,12 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
 
   return (
     <Card style={{ 
-      height: '600px', 
+      height: '100vh', 
       display: 'flex', 
       flexDirection: 'column',
       backgroundColor: 'var(--color-card-background)',
-      border: '1px solid var(--color-card-border)'
+      border: 'none',
+      borderRadius: 0
     }}>
       {/* Header */}
       <Box p="3" style={{ borderBottom: '1px solid var(--color-border-primary)' }}>
@@ -198,21 +199,30 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
                   key={index}
                   style={{
                     alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
-                    maxWidth: '70%',
+                    maxWidth: '80%',
+                    minWidth: '120px',
                   }}
                 >
                   <Box
-                    p="3"
+                    p="2"
                     style={{
                       backgroundColor: isOwnMessage ? 'var(--color-message-own)' : 'var(--color-message-other)',
                       borderRadius: 'var(--radius-3)',
+                      width: 'fit-content',
+                      maxWidth: '100%',
                     }}
                   >
                     <Flex direction="column" gap="1">
                       <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
                         {isOwnMessage ? 'You' : formatAddress(message.sender)}
                       </Text>
-                      <Text size="2" style={{ color: 'var(--color-message-text)' }}>{message.text}</Text>
+                      <Text size="2" style={{ 
+                        color: 'var(--color-message-text)',
+                        wordWrap: 'break-word',
+                        whiteSpace: 'pre-wrap'
+                      }}>
+                        {message.text}
+                      </Text>
                       <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
                         {formatTimestamp(message.createdAtMs)}
                       </Text>
@@ -274,6 +284,72 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
           </Flex>
         </form>
       </Box>
+
+      {/* Channel Details */}
+      {currentChannel && (
+        <Box p="3" style={{ 
+          borderTop: '1px solid var(--color-border-primary)',
+          backgroundColor: 'var(--color-background-primary)'
+        }}>
+          <Flex direction="column" gap="2">
+            <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+              Channel Details
+            </Text>
+            <Flex gap="4" wrap="wrap">
+              <Box>
+                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                  Channel ID
+                </Text>
+                <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                  {formatAddress(currentChannel.id.id)}
+                </Text>
+              </Box>
+              <Box>
+                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                  Messages
+                </Text>
+                <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                  {currentChannel.messages_count}
+                </Text>
+              </Box>
+              <Box>
+                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                  Members
+                </Text>
+                <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                  {currentChannel.auth.member_permissions.contents.length}
+                </Text>
+              </Box>
+              <Box>
+                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                  Created
+                </Text>
+                <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                  {formatTimestamp(currentChannel.created_at_ms)}
+                </Text>
+              </Box>
+            </Flex>
+            {currentChannel.last_message && (
+              <Box style={{ marginTop: '0.5rem' }}>
+                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                  Last Message
+                </Text>
+                <Text size="2" style={{ color: 'var(--color-text-primary)', marginTop: '0.25rem' }}>
+                  {currentChannel.last_message.text}
+                </Text>
+                <Flex gap="2" align="center" style={{ marginTop: '0.25rem' }}>
+                  <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                    from: {formatAddress(currentChannel.last_message.sender)}
+                  </Text>
+                  <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                    • {formatTimestamp(currentChannel.last_message.createdAtMs)}
+                  </Text>
+                </Flex>
+              </Box>
+            )}
+          </Flex>
+        </Box>
+      )}
     </Card>
   );
 }

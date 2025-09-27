@@ -76,64 +76,68 @@ function AppContent() {
   }
 
   return (
-    <Flex style={{ minHeight: '100vh', backgroundColor: 'var(--color-background-primary)' }}>
-      {/* Sidebar */}
-      <Box style={{
-        width: '300px',
-        backgroundColor: 'var(--color-background-secondary)',
-        borderRight: '1px solid var(--color-border-primary)',
-        padding: '1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem'
-      }}>
-        {/* Header */}
-        <Flex align="center" gap="2" style={{ marginBottom: '2rem' }}>
-          <img 
-            src={hivelogo} 
-            alt="Hive" 
-            style={{ 
-              height: '40px', 
-              width: 'auto' 
-            }} 
-          />
-        </Flex>
+    <>
+      {currentAccount && channelId ? (
+        <Channel
+          channelId={channelId}
+          onBack={() => {
+            window.location.hash = '';
+            setChannelId(null);
+          }}
+          onInteraction={trackInteraction}
+        />
+      ) : (
+        <Flex style={{ minHeight: '100vh', backgroundColor: 'var(--color-background-primary)' }}>
+          {/* Sidebar */}
+          <Box style={{
+            width: '300px',
+            backgroundColor: 'var(--color-background-secondary)',
+            borderRight: '1px solid var(--color-border-primary)',
+            padding: '1rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem'
+          }}>
+            {/* Header */}
+            <Flex align="center" gap="2" style={{ marginBottom: '1rem' }}>
+              <img 
+                src={hivelogo} 
+                alt="Hive" 
+                style={{ 
+                  height: '80px', 
+                  width: 'auto' 
+                }} 
+              />
+            </Flex>
 
-        {/* Create Channel Button */}
-        <CreateChannel onInteraction={trackInteraction} />
+            {/* Create Channel Button */}
+            <CreateChannel onInteraction={trackInteraction} />
 
-        {/* Channel List */}
-        <ChannelList />
+            {/* Channel List */}
+            <ChannelList />
 
-        {/* User Info */}
-        <Box style={{ marginTop: 'auto', paddingTop: '1rem' }}>
-          <ConnectButton />
-        </Box>
-      </Box>
-
-      {/* Main Content */}
-      <Box style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {currentAccount ? (
-          channelId ? (
-            <Channel
-              channelId={channelId}
-              onBack={() => {
-                window.location.hash = '';
-                setChannelId(null);
-              }}
-              onInteraction={trackInteraction}
-            />
-          ) : (
-            <Box style={{ flex: 1, padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-              <MessagingStatus />
+            {/* User Info */}
+            <Box style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+              <ConnectButton />
             </Box>
-          )
-        ) : (
-          <Box style={{ flex: 1, padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-            <Heading style={{ color: 'var(--color-text-primary)' }}>Please connect your wallet</Heading>
           </Box>
-        )}
-      </Box>
+
+          {/* Main Content */}
+          {currentAccount ? (
+            <Box style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Box style={{ flex: 1, padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                <MessagingStatus />
+              </Box>
+            </Box>
+          ) : (
+            <Box style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Box style={{ flex: 1, padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                <Heading style={{ color: 'var(--color-text-primary)' }}>Please connect your wallet</Heading>
+              </Box>
+            </Box>
+          )}
+        </Flex>
+      )}
 
       {/* Feedback Components */}
       {isFeedbackOpen && currentAccount && (
@@ -152,7 +156,7 @@ function AppContent() {
           isVisible={true}
         />
       )}
-    </Flex>
+    </>
   );
 }
 
