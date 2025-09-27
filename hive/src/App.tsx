@@ -76,61 +76,64 @@ function AppContent() {
   }
 
   return (
-    <>
-      <Flex
-        position="sticky"
-        px="4"
-        py="2"
-        justify="between"
-        align="center"
-        style={{
-          backgroundColor: 'var(--color-background-secondary)',
-          borderBottom: "1px solid var(--color-border-primary)",
-        }}
-      >
-        <Flex align="center" gap="2">
+    <Flex style={{ minHeight: '100vh', backgroundColor: 'var(--color-background-primary)' }}>
+      {/* Sidebar */}
+      <Box style={{
+        width: '300px',
+        backgroundColor: 'var(--color-background-secondary)',
+        borderRight: '1px solid var(--color-border-primary)',
+        padding: '1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
+        {/* Header */}
+        <Flex align="center" gap="2" style={{ marginBottom: '2rem' }}>
           <img 
             src={hivelogo} 
             alt="Hive" 
             style={{ 
-              height: '80px', 
+              height: '40px', 
               width: 'auto' 
             }} 
           />
         </Flex>
 
-        <Box>
+        {/* Create Channel Button */}
+        <CreateChannel onInteraction={trackInteraction} />
+
+        {/* Channel List */}
+        <ChannelList />
+
+        {/* User Info */}
+        <Box style={{ marginTop: 'auto', paddingTop: '1rem' }}>
           <ConnectButton />
         </Box>
-      </Flex>
-      <Container>
-        <Container
-          mt="5"
-          pt="2"
-          px="4"
-        >
-          {currentAccount ? (
-            channelId ? (
-              <Channel
-                channelId={channelId}
-                onBack={() => {
-                  window.location.hash = '';
-                  setChannelId(null);
-                }}
-                onInteraction={trackInteraction}
-              />
-            ) : (
-              <Flex direction="column" gap="4">
-                <MessagingStatus />
-                <CreateChannel onInteraction={trackInteraction} />
-                <ChannelList />
-              </Flex>
-            )
+      </Box>
+
+      {/* Main Content */}
+      <Box style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {currentAccount ? (
+          channelId ? (
+            <Channel
+              channelId={channelId}
+              onBack={() => {
+                window.location.hash = '';
+                setChannelId(null);
+              }}
+              onInteraction={trackInteraction}
+            />
           ) : (
+            <Box style={{ flex: 1, padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <MessagingStatus />
+            </Box>
+          )
+        ) : (
+          <Box style={{ flex: 1, padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
             <Heading style={{ color: 'var(--color-text-primary)' }}>Please connect your wallet</Heading>
-          )}
-        </Container>
-      </Container>
+          </Box>
+        )}
+      </Box>
 
       {/* Feedback Components */}
       {isFeedbackOpen && currentAccount && (
@@ -149,7 +152,7 @@ function AppContent() {
           isVisible={true}
         />
       )}
-    </>
+    </Flex>
   );
 }
 
