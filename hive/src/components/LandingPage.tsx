@@ -108,6 +108,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
             Experience true privacy with Hive. Your conversations are end-to-end encrypted and stored on a decentralized network, ensuring only you and your recipients can read them.
           </Text>
 
+          <Text 
+            as="p" 
+            size="3" 
+            style={{ 
+              color: 'var(--color-text-muted)', 
+              maxWidth: '600px', 
+              lineHeight: 1.6,
+              fontSize: '1rem',
+              marginTop: '1rem',
+              fontStyle: 'italic'
+            }}
+          >
+            The SDK uses Seal for encrypting messages and attachments. The Seal SDK requires a session key, which contains a signature from your account and allows the app to retrieve Seal decryption keys for a limited time (30 minutes) without requiring repeated confirmations for each message.
+          </Text>
+
           {/* Feature Cards */}
           <Flex direction="column" gap="6" align="center" style={{ marginTop: '3rem' }}>
             <Card style={{
