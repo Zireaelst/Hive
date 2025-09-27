@@ -15,10 +15,12 @@ import { MessagingStatus } from "./components/MessagingStatus";
 import { trackEvent, AnalyticsEvents } from "./utils/analytics";
 import { useFeedback } from "./hooks/useFeedback";
 import { FeedbackService } from "./services/feedbackService";
+import LandingPage from "./components/LandingPage";
 
 function AppContent() {
   const currentAccount = useCurrentAccount();
   const [prevAccount, setPrevAccount] = useState(currentAccount);
+  const [showLandingPage, setShowLandingPage] = useState(true);
   const [channelId, setChannelId] = useState<string | null>(() => {
     const hash = window.location.hash.slice(1);
     return isValidSuiObjectId(hash) ? hash : null;
@@ -68,6 +70,10 @@ function AppContent() {
       FeedbackService.markCardShown();
     }
   }, [shouldShowPrompt, isFeedbackOpen, currentAccount, openFeedback]);
+
+  if (showLandingPage) {
+    return <LandingPage onStartMessaging={() => setShowLandingPage(false)} />;
+  }
 
   return (
     <>
