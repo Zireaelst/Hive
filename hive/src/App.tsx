@@ -7,14 +7,13 @@ import hivelogo from "./assets/hivelogo.png";
 import { CreateChannel } from "./components/CreateChannel";
 import { ChannelList } from "./components/ChannelList";
 import { Channel } from "./components/Channel";
-import { FeedbackCard } from "./components/FeedbackCard";
-import { FeedbackBubble } from "./components/FeedbackBubble";
+import { LiveSupportChat } from "./components/LiveSupportChat";
+import { LiveSupportBubble } from "./components/LiveSupportBubble";
 import { useState, useEffect } from "react";
 import { isValidSuiObjectId } from "@mysten/sui/utils";
 import { MessagingStatus } from "./components/MessagingStatus";
 import { trackEvent, AnalyticsEvents } from "./utils/analytics";
-import { useFeedback } from "./hooks/useFeedback";
-import { FeedbackService } from "./services/feedbackService";
+import { useLiveSupport } from "./hooks/useLiveSupport";
 import LandingPage from "./components/LandingPage";
 
 function AppContent() {
@@ -27,17 +26,11 @@ function AppContent() {
   });
 
   const {
-    isOpen: isFeedbackOpen,
-    isSending: isFeedbackSending,
-    error: feedbackError,
-    showBubble,
-    shouldShowPrompt,
-    openFeedback,
-    closeFeedback,
-    submitFeedback,
-    handleOptOut,
+    isOpen: isSupportOpen,
+    openSupport,
+    closeSupport,
     trackInteraction,
-  } = useFeedback();
+  } = useLiveSupport();
 
   // Track wallet connection changes
   useEffect(() => {
@@ -62,14 +55,7 @@ function AppContent() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Show feedback prompt automatically when threshold is reached
-  useEffect(() => {
-    if (shouldShowPrompt && !isFeedbackOpen && currentAccount) {
-      openFeedback();
-      // Mark the card as shown so it won't auto-popup again
-      FeedbackService.markCardShown();
-    }
-  }, [shouldShowPrompt, isFeedbackOpen, currentAccount, openFeedback]);
+  // No auto-prompt for support - user clicks bubble to open
 
   if (showLandingPage) {
     return <LandingPage onStartMessaging={() => setShowLandingPage(false)} />;
@@ -139,21 +125,20 @@ function AppContent() {
         </Flex>
       )}
 
-      {/* Feedback Components */}
-      {isFeedbackOpen && currentAccount && (
-        <FeedbackCard
-          onSubmit={submitFeedback}
-          onClose={closeFeedback}
-          onOptOut={handleOptOut}
-          isSubmitting={isFeedbackSending}
-          error={feedbackError}
+      {/* Live Support Components */}
+      {isSupportOpen && currentAccount && (
+        <LiveSupportChat
+          onClose={closeSupport}
+          isOpen={isSupportOpen}
         />
       )}
 
-      {showBubble && !isFeedbackOpen && currentAccount && (
-        <FeedbackBubble
-          onClick={openFeedback}
+      {currentAccount && (
+        <LiveSupportBubble
+          onClick={openSupport}
           isVisible={true}
+          isOnline={true}
+          unreadCount={0}
         />
       )}
     </>
