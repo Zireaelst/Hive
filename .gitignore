@@ -125,3 +125,6 @@ playwright/.cache/
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
+
+# Embedded git repositories
+hive/sui-stack-messaging-sdk/

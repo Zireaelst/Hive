@@ -1,0 +1,229 @@
+/* Hive Color Palette */
+:root {
+  /* Core Colors */
+  --honey-yellow: #F7C948;
+  --amber-shadow: #E0A106;
+  --soft-white: #FCFCF8;
+  --cream-white: #FFF7E8;
+  --charcoal: #1F2933;
+  --ink: #0B0D0E;
+  --tech-blue: #4C9EEB;
+  --wing-blue: #AEEAF7;
+
+  /* Semantic Color Mappings */
+  --color-primary: var(--honey-yellow);
+  --color-primary-hover: var(--amber-shadow);
+  --color-secondary: var(--tech-blue);
+  --color-secondary-hover: var(--wing-blue);
+  
+  /* Background Colors */
+  --color-background-primary: var(--ink);
+  --color-background-secondary: var(--charcoal);
+  --color-background-tertiary: var(--charcoal);
+  
+  /* Text Colors */
+  --color-text-primary: var(--soft-white);
+  --color-text-secondary: var(--cream-white);
+  --color-text-muted: #9CA3AF;
+  
+  /* Border Colors */
+  --color-border-primary: #374151;
+  --color-border-secondary: #4B5563;
+  
+  /* Status Colors */
+  --color-success: #10B981;
+  --color-warning: var(--amber-shadow);
+  --color-error: #EF4444;
+  --color-info: var(--tech-blue);
+  
+  /* Message Colors */
+  --color-message-own: var(--tech-blue);
+  --color-message-other: var(--charcoal);
+  --color-message-text: var(--soft-white);
+  
+  /* Interactive Elements */
+  --color-button-primary: var(--honey-yellow);
+  --color-button-primary-hover: var(--amber-shadow);
+  --color-button-secondary: var(--tech-blue);
+  --color-button-secondary-hover: var(--wing-blue);
+  --color-button-text: var(--ink);
+  
+  /* Card Colors */
+  --color-card-background: var(--charcoal);
+  --color-card-border: var(--color-border-primary);
+  
+  /* Input Colors */
+  --color-input-background: var(--charcoal);
+  --color-input-border: var(--color-border-primary);
+  --color-input-border-focus: var(--tech-blue);
+  --color-input-text: var(--soft-white);
+  --color-input-placeholder: var(--color-text-muted);
+}
+
+/* Override Radix UI CSS Variables */
+:root {
+  /* Background Colors */
+  --gray-1: var(--color-background-primary);
+  --gray-2: var(--color-background-secondary);
+  --gray-3: var(--color-background-tertiary);
+  --gray-4: var(--color-border-primary);
+  --gray-5: var(--color-border-secondary);
+  --gray-6: var(--color-text-muted);
+  --gray-7: var(--color-text-secondary);
+  --gray-8: var(--color-text-primary);
+  --gray-9: var(--color-text-primary);
+  --gray-10: var(--color-text-primary);
+  --gray-11: var(--color-text-primary);
+  --gray-12: var(--color-text-primary);
+
+  /* Accent Colors */
+  --accent-1: var(--color-background-primary);
+  --accent-2: var(--color-background-secondary);
+  --accent-3: var(--color-secondary);
+  --accent-4: var(--color-secondary);
+  --accent-5: var(--color-secondary);
+  --accent-6: var(--color-secondary);
+  --accent-7: var(--color-secondary);
+  --accent-8: var(--color-secondary);
+  --accent-9: var(--color-secondary);
+  --accent-10: var(--color-secondary);
+  --accent-11: var(--color-secondary);
+  --accent-12: var(--color-text-primary);
+
+  /* Primary Colors */
+  --primary-1: var(--color-background-primary);
+  --primary-2: var(--color-background-secondary);
+  --primary-3: var(--color-primary);
+  --primary-4: var(--color-primary);
+  --primary-5: var(--color-primary);
+  --primary-6: var(--color-primary);
+  --primary-7: var(--color-primary);
+  --primary-8: var(--color-primary);
+  --primary-9: var(--color-primary);
+  --primary-10: var(--color-primary);
+  --primary-11: var(--color-primary);
+  --primary-12: var(--color-button-text);
+
+  /* Success Colors */
+  --green-1: var(--color-background-primary);
+  --green-2: var(--color-background-secondary);
+  --green-3: var(--color-success);
+  --green-4: var(--color-success);
+  --green-5: var(--color-success);
+  --green-6: var(--color-success);
+  --green-7: var(--color-success);
+  --green-8: var(--color-success);
+  --green-9: var(--color-success);
+  --green-10: var(--color-success);
+  --green-11: var(--color-success);
+  --green-12: var(--color-text-primary);
+
+  /* Warning Colors */
+  --yellow-1: var(--color-background-primary);
+  --yellow-2: var(--color-background-secondary);
+  --yellow-3: var(--color-warning);
+  --yellow-4: var(--color-warning);
+  --yellow-5: var(--color-warning);
+  --yellow-6: var(--color-warning);
+  --yellow-7: var(--color-warning);
+  --yellow-8: var(--color-warning);
+  --yellow-9: var(--color-warning);
+  --yellow-10: var(--color-warning);
+  --yellow-11: var(--color-warning);
+  --yellow-12: var(--color-button-text);
+
+  /* Error Colors */
+  --red-1: var(--color-background-primary);
+  --red-2: var(--color-background-secondary);
+  --red-3: var(--color-error);
+  --red-4: var(--color-error);
+  --red-5: var(--color-error);
+  --red-6: var(--color-error);
+  --red-7: var(--color-error);
+  --red-8: var(--color-error);
+  --red-9: var(--color-error);
+  --red-10: var(--color-error);
+  --red-11: var(--color-error);
+  --red-12: var(--color-text-primary);
+
+  /* Border Radius */
+  --radius-1: 4px;
+  --radius-2: 6px;
+  --radius-3: 8px;
+  --radius-4: 12px;
+  --radius-5: 16px;
+  --radius-6: 20px;
+}
+
+/* Global Styles */
+body {
+  background-color: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
+/* Custom Component Styles */
+.hive-card {
+  background-color: var(--color-card-background);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-3);
+}
+
+.hive-button-primary {
+  background-color: var(--color-button-primary);
+  color: var(--color-button-text);
+  border: none;
+  border-radius: var(--radius-2);
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.hive-button-primary:hover {
+  background-color: var(--color-button-primary-hover);
+}
+
+.hive-button-secondary {
+  background-color: var(--color-button-secondary);
+  color: var(--color-text-primary);
+  border: none;
+  border-radius: var(--radius-2);
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.hive-button-secondary:hover {
+  background-color: var(--color-button-secondary-hover);
+}
+
+.hive-message-own {
+  background-color: var(--color-message-own);
+  color: var(--color-message-text);
+  border-radius: var(--radius-3);
+  padding: 12px;
+}
+
+.hive-message-other {
+  background-color: var(--color-message-other);
+  color: var(--color-message-text);
+  border-radius: var(--radius-3);
+  padding: 12px;
+}
+
+.hive-input {
+  background-color: var(--color-input-background);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-input-text);
+  border-radius: var(--radius-2);
+  padding: 8px 12px;
+}
+
+.hive-input:focus {
+  border-color: var(--color-input-border-focus);
+  outline: none;
+}
+
+.hive-input::placeholder {
+  color: var(--color-input-placeholder);
+}
