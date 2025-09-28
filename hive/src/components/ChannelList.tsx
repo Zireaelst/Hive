@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { formatTimestamp, formatAddress } from '../utils/formatters';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { ChannelType, ChannelMetadata } from '../types/channel';
+import { walrusService } from '../services/walrusService';
+import { useCurrentAccount } from '@mysten/dapp-kit';
 
 interface DAOInvite {
   id: string;
@@ -17,9 +19,10 @@ interface DAOInvite {
 }
 
 export function ChannelList() {
-  const { channels, isFetchingChannels, fetchChannels, isReady, getChannelMetadata } = useMessaging();
+  const { channels, isFetchingChannels, fetchChannels, isReady, getChannelMetadata, messages } = useMessaging();
   const [channelMetadataMap, setChannelMetadataMap] = useState<Map<string, ChannelMetadata>>(new Map());
   const [daoInvites, setDaoInvites] = useState<DAOInvite[]>([]);
+  const currentAccount = useCurrentAccount();
 
   useEffect(() => {
     console.log('Channels updated:', channels);
@@ -52,6 +55,65 @@ export function ChannelList() {
     loadDAOInvites();
   }, []);
 
+  useEffect(() => {
+    // Check for Walrus invitation messages in all channels
+    const checkForWalrusInvitations = async () => {
+      if (!currentAccount || !messages) return;
+
+      for (const _channel of channels) {
+        try {
+          // Get messages for this channel
+          const channelMessages = messages.filter(msg => 
+            msg.sender !== currentAccount.address && 
+            msg.text.includes('🎯 **DAO Assembly Invitation Data**') &&
+            msg.text.includes('[Walrus:')
+          );
+
+          for (const message of channelMessages) {
+            // Extract blob ID from message
+            const walrusMatch = message.text.match(/\[Walrus: (.+?)\]/);
+            if (walrusMatch) {
+              const blobId = walrusMatch[1];
+              
+              try {
+                // Download invitation data from Walrus
+                const blob = await walrusService.downloadFile(blobId);
+                const text = await blob.text();
+                const invitationData = JSON.parse(text);
+                
+                // Check if this invitation is for the current user
+                if (invitationData.invitedAddress.toLowerCase() === currentAccount.address.toLowerCase()) {
+                  // Check if we already have this invitation
+                  const existingInvites = JSON.parse(localStorage.getItem('dao_invites') || '[]');
+                  const alreadyExists = existingInvites.some((invite: DAOInvite) => invite.id === invitationData.id);
+                  
+                  if (!alreadyExists) {
+                    // Add new invitation
+                    const newInvite: DAOInvite = {
+                      ...invitationData,
+                      message: message.text,
+                      status: 'pending'
+                    };
+                    
+                    const updatedInvites = [...existingInvites, newInvite];
+                    localStorage.setItem('dao_invites', JSON.stringify(updatedInvites));
+                    setDaoInvites(updatedInvites);
+                  }
+                }
+              } catch (error) {
+                console.error('Error processing Walrus invitation:', error);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error checking channel for invitations:', error);
+        }
+      }
+    };
+
+    checkForWalrusInvitations();
+  }, [channels, messages, currentAccount]);
+
   const getChannelTypeBadge = (channelId: string) => {
     const metadata = channelMetadataMap.get(channelId);
     if (!metadata) {
@@ -75,16 +137,34 @@ export function ChannelList() {
     return metadata?.name || 'Unnamed Channel';
   };
 
-  const handleAcceptInvite = (inviteId: string) => {
-    setDaoInvites(prev => prev.map(invite => 
-      invite.id === inviteId ? { ...invite, status: 'accepted' } : invite
-    ));
-    
-    // Save to localStorage
-    const updatedInvites = daoInvites.map(invite => 
-      invite.id === inviteId ? { ...invite, status: 'accepted' } : invite
-    );
-    localStorage.setItem('dao_invites', JSON.stringify(updatedInvites));
+  const handleAcceptInvite = async (inviteId: string) => {
+    const invite = daoInvites.find(inv => inv.id === inviteId);
+    if (!invite) return;
+
+    try {
+      // Update invitation status
+      setDaoInvites(prev => prev.map(inv => 
+        inv.id === inviteId ? { ...inv, status: 'accepted' } : inv
+      ));
+      
+      // Save to localStorage
+      const updatedInvites = daoInvites.map(inv => 
+        inv.id === inviteId ? { ...inv, status: 'accepted' } : inv
+      );
+      localStorage.setItem('dao_invites', JSON.stringify(updatedInvites));
+
+      // Navigate to the channel
+      window.location.hash = invite.channelId;
+      
+      // Track the acceptance
+      trackEvent(AnalyticsEvents.CHANNEL_OPENED, {
+        channel_id: invite.channelId,
+        source: 'dao_invitation'
+      });
+      
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+    }
   };
 
   const handleDeclineInvite = (inviteId: string) => {
@@ -311,10 +391,7 @@ export function ChannelList() {
                         <Flex gap="2" style={{ marginTop: '8px' }}>
                           <Button
                             size="2"
-                            onClick={() => {
-                              handleAcceptInvite(invite.id);
-                              window.location.hash = invite.channelId;
-                            }}
+                            onClick={() => handleAcceptInvite(invite.id)}
                             style={{
                               backgroundColor: 'var(--color-success)',
                               color: 'white'

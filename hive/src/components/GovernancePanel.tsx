@@ -7,6 +7,7 @@ import { formatTimestamp, formatAddress } from '../utils/formatters';
 import { suinsService } from '../services/suinsService';
 import { useMessaging } from '../hooks/useMessaging';
 import { isValidSuiAddress } from '@mysten/sui/utils';
+import { walrusService } from '../services/walrusService';
 
 interface GovernancePanelProps {
   channelId: string;
@@ -131,30 +132,48 @@ export function GovernancePanel({ channelId, channelName }: GovernancePanelProps
         return;
       }
 
-      // Send invitation message to the channel
-      const invitationMessage = `🔗 **DAO Assembly Invitation**\n\n${formatAddress(resolvedAddress)} has been invited to join this DAO Assembly.\n\nInvited by: ${formatAddress(currentAccount?.address || '')}\n\nPlease connect your wallet to participate in governance discussions.`;
-      
-      await sendMessage(channelId, invitationMessage);
-      
-      // Save invitation to localStorage for the invited user
-      const invitation = {
+      // Create invitation data
+      const invitationData = {
         id: `invite-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         channelId: channelId,
         channelName: channelName || 'DAO Assembly',
         inviterAddress: currentAccount?.address || '',
         invitedAddress: resolvedAddress,
-        message: invitationMessage,
         timestamp: Date.now(),
         status: 'pending'
       };
+
+      // Create invitation message for the channel
+      const invitationMessage = `🔗 **DAO Assembly Invitation**\n\n${formatAddress(resolvedAddress)} has been invited to join this DAO Assembly.\n\nInvited by: ${formatAddress(currentAccount?.address || '')}\n\nPlease connect your wallet to participate in governance discussions.`;
       
-      // Load existing invites and add new one
+      // Send invitation message to the channel
+      await sendMessage(channelId, invitationMessage);
+      
+      // Upload invitation data to Walrus for the invited user
       try {
-        const existingInvites = JSON.parse(localStorage.getItem('dao_invites') || '[]');
-        existingInvites.push(invitation);
-        localStorage.setItem('dao_invites', JSON.stringify(existingInvites));
+        const invitationBlob = new Blob([JSON.stringify(invitationData)], { type: 'application/json' });
+        const invitationFile = new File([invitationBlob], `dao-invitation-${invitationData.id}.json`, {
+          type: 'application/json'
+        });
+        
+        const fileInfo = await walrusService.uploadFile(invitationFile);
+        
+        // Create a special message with the invitation data
+        const walrusInvitationMessage = `🎯 **DAO Assembly Invitation Data**\n\nChannel: ${channelName || 'DAO Assembly'}\nInvited by: ${formatAddress(currentAccount?.address || '')}\n\n[Walrus: ${fileInfo.blobId}]`;
+        
+        // Send the invitation data message to the channel
+        await sendMessage(channelId, walrusInvitationMessage);
+        
       } catch (error) {
-        console.error('Error saving DAO invitation:', error);
+        console.error('Error uploading invitation to Walrus:', error);
+        // Fallback to localStorage if Walrus fails
+        try {
+          const existingInvites = JSON.parse(localStorage.getItem('dao_invites') || '[]');
+          existingInvites.push(invitationData);
+          localStorage.setItem('dao_invites', JSON.stringify(existingInvites));
+        } catch (localError) {
+          console.error('Error saving DAO invitation to localStorage:', localError);
+        }
       }
       
       setMemberSuccess(`Successfully invited ${formatAddress(resolvedAddress)} to the DAO Assembly!`);
