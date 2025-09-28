@@ -11,10 +11,9 @@ import { useVoiceRecording } from '../hooks/useVoiceRecording';
 interface ChannelProps {
   channelId: string;
   onBack: () => void;
-  onInteraction?: () => void;
 }
 
-export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
+export function Channel({ channelId, onBack }: ChannelProps) {
   const currentAccount = useCurrentAccount();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isLoadingOlderRef = useRef(false);
@@ -189,10 +188,6 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
         has_file: selectedFile ? 1 : 0,
         has_voice: audioBlob ? 1 : 0,
       });
-      // Track interaction for feedback
-      if (onInteraction) {
-        onInteraction();
-      }
     } else if (channelError) {
       // Track message sending error
       trackError('message_send', channelError, {
