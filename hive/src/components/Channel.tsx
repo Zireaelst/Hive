@@ -6,6 +6,7 @@ import { formatTimestamp, formatAddress } from '../utils/formatters';
 import { trackEvent, trackError, AnalyticsEvents } from '../utils/analytics';
 import { walrusService } from '../services/walrusService';
 import { suinsService } from '../services/suinsService';
+import { useVoiceRecording } from '../hooks/useVoiceRecording';
 
 interface ChannelProps {
   channelId: string;
@@ -35,7 +36,28 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [addressNames, setAddressNames] = useState<Map<string, string>>(new Map());
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Voice recording hook
+  const {
+    isRecording,
+    isPaused,
+    recordingTime,
+    audioBlob,
+    audioUrl,
+    error: voiceError,
+    availableDevices,
+    selectedDeviceId,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    clearRecording,
+    formatTime,
+    getAudioDevices,
+    setSelectedDevice,
+  } = useVoiceRecording();
 
   // Fetch channel and messages on mount
   useEffect(() => {
@@ -97,17 +119,46 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
     resolveNames();
   }, [messages, addressNames]);
 
+  // Load audio devices when voice recorder is opened
+  useEffect(() => {
+    if (showVoiceRecorder && availableDevices.length === 0) {
+      getAudioDevices();
+    }
+  }, [showVoiceRecorder, availableDevices.length, getAudioDevices]);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if ((!messageText.trim() && !selectedFile) || isSendingMessage || isUploading) {
+    if ((!messageText.trim() && !selectedFile && !audioBlob) || isSendingMessage || isUploading) {
       return;
     }
 
     let messageContent = messageText;
     
+    // Handle voice message upload to Walrus
+    if (audioBlob) {
+      setIsUploading(true);
+      try {
+        // Create a File object from the audio blob
+        const audioFile = new File([audioBlob], `voice-message-${Date.now()}.webm`, {
+          type: 'audio/webm;codecs=opus'
+        });
+        
+        // Upload audio file to Walrus
+        const fileInfo = await walrusService.uploadFile(audioFile);
+        
+        // Create message with Walrus file info
+        const duration = formatTime(recordingTime);
+        messageContent = `🎤 Voice Message (${duration})\n${messageText || 'Voice message'}\n\n[Walrus: ${fileInfo.blobId}]`;
+      } catch (error) {
+        console.error('Voice message upload error:', error);
+        setIsUploading(false);
+        alert('Failed to upload voice message to Walrus. Please try again.');
+        return;
+      }
+    }
     // Handle file upload to Walrus
-    if (selectedFile) {
+    else if (selectedFile) {
       setIsUploading(true);
       try {
         // Upload file to Walrus
@@ -128,12 +179,15 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
     if (result) {
       setMessageText(''); // Clear input on success
       setSelectedFile(null); // Clear selected file
+      clearRecording(); // Clear voice recording
+      setShowVoiceRecorder(false); // Hide voice recorder
       setIsUploading(false);
       // Track successful message send
       trackEvent(AnalyticsEvents.MESSAGE_SENT, {
         channel_id: channelId,
         message_length: messageContent.length,
         has_file: selectedFile ? 1 : 0,
+        has_voice: audioBlob ? 1 : 0,
       });
       // Track interaction for feedback
       if (onInteraction) {
@@ -185,6 +239,19 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
   };
 
   const parseFileMessage = (messageText: string) => {
+    // Parse Walrus voice message format
+    const voiceMatch = messageText.match(/🎤 Voice Message \((.+?)\)\n(.*?)\n\n\[Walrus: (.+?)\]/s);
+    if (voiceMatch) {
+      return {
+        fileName: `Voice Message (${voiceMatch[1]})`,
+        fileSize: voiceMatch[1],
+        message: voiceMatch[2],
+        blobId: voiceMatch[3],
+        isWalrus: true,
+        isVoice: true
+      };
+    }
+    
     // Parse Walrus file message format
     const walrusMatch = messageText.match(/📎 (.+?) \((.+?)\)\n(.*?)\n\n\[Walrus: (.+?)\]/s);
     if (walrusMatch) {
@@ -366,8 +433,45 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
                       
                       {fileInfo ? (
                         <Box>
-                          {/* Show image directly if it's a Walrus image */}
-                          {fileInfo.isWalrus && fileInfo.blobId && walrusService.isImageFile(fileInfo.fileName) ? (
+                          {/* Show voice message player */}
+                          {fileInfo.isVoice && fileInfo.isWalrus && fileInfo.blobId ? (
+                            <Box style={{ marginBottom: '8px' }}>
+                              <Flex align="center" gap="2" style={{ marginBottom: '8px' }}>
+                                <Text size="2">🎤</Text>
+                                <Text size="2" weight="bold" style={{ color: 'var(--color-message-text)' }}>
+                                  Voice Message
+                                </Text>
+                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                                  ({fileInfo.fileSize})
+                                </Text>
+                              </Flex>
+                              <audio 
+                                controls 
+                                style={{ 
+                                  width: '100%', 
+                                  maxWidth: '300px',
+                                  height: '32px'
+                                }}
+                                src={walrusService.getFileUrl(fileInfo.blobId)}
+                              />
+                              <Flex align="center" gap="2" style={{ marginTop: '4px' }}>
+                                <Button
+                                  size="1"
+                                  variant="soft"
+                                  onClick={() => downloadFile(fileInfo.blobId, `${fileInfo.fileName}.webm`)}
+                                  style={{
+                                    backgroundColor: 'var(--color-button-secondary)',
+                                    color: 'var(--color-text-primary)',
+                                    fontSize: '10px',
+                                    padding: '1px 6px'
+                                  }}
+                                >
+                                  Download
+                                </Button>
+                              </Flex>
+                            </Box>
+                          ) : /* Show image directly if it's a Walrus image */
+                          fileInfo.isWalrus && fileInfo.blobId && walrusService.isImageFile(fileInfo.fileName) ? (
                             <Box style={{ marginBottom: '8px' }}>
                               <img 
                                 src={walrusService.getFileUrl(fileInfo.blobId)} 
@@ -459,7 +563,7 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
                               </Button>
                             </Flex>
                           )}
-                          {fileInfo.message && fileInfo.message !== 'File shared' && (
+                          {fileInfo.message && fileInfo.message !== 'File shared' && fileInfo.message !== 'Voice message' && (
                             <Text size="2" style={{ 
                               color: 'var(--color-message-text)',
                               wordWrap: 'break-word',
@@ -512,6 +616,215 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
 
       {/* Message Input */}
       <Box p="3" style={{ borderTop: '1px solid var(--color-border-primary)' }}>
+        {/* Voice Recording UI */}
+        {showVoiceRecorder && (
+          <Box p="3" style={{ 
+            backgroundColor: 'var(--color-background-secondary)', 
+            borderRadius: 'var(--radius-2)',
+            marginBottom: '8px',
+            border: '1px solid var(--color-border-primary)'
+          }}>
+            <Flex direction="column" gap="3">
+              <Flex justify="between" align="center">
+                <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                  🎤 Voice Message
+                </Text>
+                <Button
+                  size="1"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowVoiceRecorder(false);
+                    clearRecording();
+                  }}
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  ✕
+                </Button>
+              </Flex>
+              
+              {/* Audio Device Selection */}
+              <Flex direction="column" gap="2">
+                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                  Select Microphone:
+                </Text>
+                <Flex gap="2" align="center" wrap="wrap">
+                  <select
+                    value={selectedDeviceId || ''}
+                    onChange={(e) => setSelectedDevice(e.target.value)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--color-border-primary)',
+                      backgroundColor: 'var(--color-input-background)',
+                      color: 'var(--color-input-text)',
+                      fontSize: '12px',
+                      minWidth: '200px'
+                    }}
+                  >
+                    {availableDevices.map((device) => (
+                      <option key={device.deviceId} value={device.deviceId}>
+                        {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    size="1"
+                    variant="soft"
+                    onClick={getAudioDevices}
+                    style={{
+                      backgroundColor: 'var(--color-background-secondary)',
+                      color: 'var(--color-text-primary)',
+                      fontSize: '10px',
+                      padding: '2px 6px'
+                    }}
+                  >
+                    🔄 Refresh
+                  </Button>
+                </Flex>
+              </Flex>
+              
+              {voiceError && (
+                <Text size="1" style={{ color: 'var(--color-error)' }}>
+                  {voiceError}
+                </Text>
+              )}
+              
+              {!audioBlob ? (
+                <Flex direction="column" gap="2">
+                  <Flex align="center" gap="2">
+                    <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+                      {isRecording ? (isPaused ? 'Paused' : 'Recording...') : 'Ready to record'}
+                    </Text>
+                    {isRecording && (
+                      <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                        {formatTime(recordingTime)}
+                      </Text>
+                    )}
+                  </Flex>
+                  
+                  {/* Debug info */}
+                  <Text size="1" style={{ color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>
+                    Status: {isRecording ? 'Recording' : 'Stopped'} | 
+                    Paused: {isPaused ? 'Yes' : 'No'} | 
+                    Time: {formatTime(recordingTime)}
+                  </Text>
+                  
+                  <Flex gap="2" align="center" wrap="wrap">
+                    {!isRecording ? (
+                      <>
+                        <Button
+                          size="2"
+                          variant="solid"
+                          onClick={startRecording}
+                          disabled={!isReady}
+                          style={{
+                            backgroundColor: 'var(--color-error)',
+                            color: 'white'
+                          }}
+                        >
+                          🎤 Start Recording
+                        </Button>
+                        <Button
+                          size="1"
+                          variant="soft"
+                          onClick={async () => {
+                            try {
+                              const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                              console.log('Microphone test successful:', stream.getAudioTracks());
+                              alert('Microphone is working! You can start recording.');
+                              stream.getTracks().forEach(track => track.stop());
+                            } catch (error) {
+                              console.error('Microphone test failed:', error);
+                              alert('Microphone test failed: ' + (error as Error).message);
+                            }
+                          }}
+                          style={{
+                            backgroundColor: 'var(--color-background-secondary)',
+                            color: 'var(--color-text-primary)'
+                          }}
+                        >
+                          🔍 Test Mic
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          size="2"
+                          variant="solid"
+                          onClick={isPaused ? resumeRecording : pauseRecording}
+                          style={{
+                            backgroundColor: 'var(--color-warning)',
+                            color: 'white'
+                          }}
+                        >
+                          {isPaused ? '▶️ Resume' : '⏸️ Pause'}
+                        </Button>
+                        <Button
+                          size="2"
+                          variant="solid"
+                          onClick={stopRecording}
+                          style={{
+                            backgroundColor: 'var(--color-button-primary)',
+                            color: 'var(--color-button-text)'
+                          }}
+                        >
+                          ⏹️ Stop
+                        </Button>
+                      </>
+                    )}
+                  </Flex>
+                </Flex>
+              ) : (
+                <Flex direction="column" gap="2">
+                  <Flex align="center" gap="2">
+                    <Text size="2">🎤</Text>
+                    <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                      Voice Message ({formatTime(recordingTime)})
+                    </Text>
+                  </Flex>
+                  
+                  <audio 
+                    controls 
+                    style={{ 
+                      width: '100%', 
+                      height: '32px'
+                    }}
+                    src={audioUrl || undefined}
+                  />
+                  
+                  <Flex gap="2">
+                    <Button
+                      size="1"
+                      variant="soft"
+                      onClick={clearRecording}
+                      style={{
+                        backgroundColor: 'var(--color-button-secondary)',
+                        color: 'var(--color-text-primary)'
+                      }}
+                    >
+                      🗑️ Delete
+                    </Button>
+                    <Button
+                      size="1"
+                      variant="soft"
+                      onClick={() => {
+                        clearRecording();
+                        setShowVoiceRecorder(false);
+                      }}
+                      style={{
+                        backgroundColor: 'var(--color-button-secondary)',
+                        color: 'var(--color-text-primary)'
+                      }}
+                    >
+                      ✏️ Re-record
+                    </Button>
+                  </Flex>
+                </Flex>
+              )}
+            </Flex>
+          </Box>
+        )}
+
         {/* File Preview */}
         {selectedFile && (
           <Box p="2" style={{ 
@@ -559,7 +872,7 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
               type="button"
               variant="soft"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isSendingMessage || isUploading || !isReady}
+              disabled={isSendingMessage || isUploading || !isReady || showVoiceRecorder}
               style={{
                 backgroundColor: 'var(--color-background-secondary)',
                 color: 'var(--color-text-primary)',
@@ -567,6 +880,20 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
               }}
             >
               📎
+            </Button>
+            <Button
+              size="3"
+              type="button"
+              variant="soft"
+              onClick={() => setShowVoiceRecorder(!showVoiceRecorder)}
+              disabled={isSendingMessage || isUploading || !isReady || selectedFile !== null}
+              style={{
+                backgroundColor: showVoiceRecorder ? 'var(--color-error)' : 'var(--color-background-secondary)',
+                color: showVoiceRecorder ? 'white' : 'var(--color-text-primary)',
+                border: '1px solid var(--color-border-primary)'
+              }}
+            >
+              🎤
             </Button>
             <TextField.Root
               size="3"
@@ -584,7 +911,7 @@ export function Channel({ channelId, onBack, onInteraction }: ChannelProps) {
             <Button
               size="3"
               type="submit"
-              disabled={(!messageText.trim() && !selectedFile) || isSendingMessage || isUploading || !isReady}
+              disabled={(!messageText.trim() && !selectedFile && !audioBlob) || isSendingMessage || isUploading || !isReady}
               style={{
                 backgroundColor: 'var(--color-button-primary)',
                 color: 'var(--color-button-text)'
