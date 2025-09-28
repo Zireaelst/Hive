@@ -6,11 +6,9 @@ import { isValidSuiAddress } from '@mysten/sui/utils';
 import { trackEvent, trackError, AnalyticsEvents } from '../utils/analytics';
 import { suinsService } from '../services/suinsService';
 
-interface CreateChannelProps {
-  onInteraction?: () => void;
-}
+interface CreateChannelProps {}
 
-export function CreateChannel({ onInteraction }: CreateChannelProps) {
+export function CreateChannel({}: CreateChannelProps) {
   const { createChannel, isCreatingChannel, channelError, isReady } = useMessaging();
   const currentAccount = useCurrentAccount();
   const [recipientAddresses, setRecipientAddresses] = useState('');
@@ -88,10 +86,6 @@ export function CreateChannel({ onInteraction }: CreateChannelProps) {
         channel_id: result.channelId,
       });
 
-      // Track interaction for feedback
-      if (onInteraction) {
-        onInteraction();
-      }
 
       // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(null), 5000);

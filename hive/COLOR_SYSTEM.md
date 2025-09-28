@@ -37,8 +37,6 @@ The following components have been updated to use the new color system:
 3. **CreateChannel.tsx** - Form styling and buttons
 4. **MessagingStatus.tsx** - Status badges and cards
 5. **ChannelList.tsx** - Channel cards and interactive elements
-6. **FeedbackCard.tsx** - Feedback form styling
-7. **FeedbackBubble.tsx** - Floating action button
 
 ### Radix UI Integration
 The color system integrates with Radix UI by overriding the default CSS variables:
