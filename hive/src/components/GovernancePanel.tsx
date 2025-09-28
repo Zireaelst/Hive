@@ -136,6 +136,27 @@ export function GovernancePanel({ channelId, channelName }: GovernancePanelProps
       
       await sendMessage(channelId, invitationMessage);
       
+      // Save invitation to localStorage for the invited user
+      const invitation = {
+        id: `invite-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        channelId: channelId,
+        channelName: channelName || 'DAO Assembly',
+        inviterAddress: currentAccount?.address || '',
+        invitedAddress: resolvedAddress,
+        message: invitationMessage,
+        timestamp: Date.now(),
+        status: 'pending'
+      };
+      
+      // Load existing invites and add new one
+      try {
+        const existingInvites = JSON.parse(localStorage.getItem('dao_invites') || '[]');
+        existingInvites.push(invitation);
+        localStorage.setItem('dao_invites', JSON.stringify(existingInvites));
+      } catch (error) {
+        console.error('Error saving DAO invitation:', error);
+      }
+      
       setMemberSuccess(`Successfully invited ${formatAddress(resolvedAddress)} to the DAO Assembly!`);
       setNewMemberAddress('');
       
