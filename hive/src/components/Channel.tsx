@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { Card, Flex, Text, Box, Button, TextField, Badge } from '@radix-ui/themes';
+import { Card, Flex, Text, Box, Button, TextField, Badge, Dialog, Select } from '@radix-ui/themes';
 import { useMessaging } from '../hooks/useMessaging';
-import { useCurrentAccount } from '@mysten/dapp-kit';
+import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
 import { formatTimestamp, formatAddress } from '../utils/formatters';
 import { trackEvent, trackError, AnalyticsEvents } from '../utils/analytics';
 import { walrusService } from '../services/walrusService';
@@ -15,6 +16,7 @@ interface ChannelProps {
 
 export function Channel({ channelId, onBack }: ChannelProps) {
   const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isLoadingOlderRef = useRef(false);
   const {
@@ -36,7 +38,15 @@ export function Channel({ channelId, onBack }: ChannelProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [addressNames, setAddressNames] = useState<Map<string, string>>(new Map());
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Voice recording hook
   const {
@@ -124,6 +134,133 @@ export function Channel({ channelId, onBack }: ChannelProps) {
       getAudioDevices();
     }
   }, [showVoiceRecorder, availableDevices.length, getAudioDevices]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Helper function to get channel members
+  const getChannelMembers = () => {
+    if (!currentChannel || !currentAccount) return [];
+    
+    let members: string[] = [];
+    const channel = currentChannel as any;
+    
+    console.log('=== getChannelMembers DEBUG ===');
+    console.log('Current account:', currentAccount.address);
+    console.log('Channel last_message:', channel.last_message);
+    console.log('Messages:', messages);
+    
+    // Method 1: Get from last message sender (most direct approach)
+    if (channel.last_message && channel.last_message.sender) {
+      const lastSender = channel.last_message.sender;
+      if (lastSender !== currentAccount.address) {
+        members = [lastSender];
+        console.log('Method 1 - Last message sender:', members);
+      }
+    }
+    
+    // Method 2: Get unique message senders from all messages
+    if (members.length === 0 && messages && messages.length > 0) {
+      const messageSenders = new Set<string>();
+      messages.forEach((message: any) => {
+        if (message.sender && message.sender !== currentAccount.address) {
+          messageSenders.add(message.sender);
+        }
+      });
+      members = Array.from(messageSenders);
+      console.log('Method 2 - Message senders:', members);
+    }
+    
+    // Method 3: Check if we can extract from channel details
+    if (members.length === 0) {
+      console.log('Method 3 - Checking channel details...');
+      console.log('Channel object keys:', Object.keys(channel));
+      
+      // Look for any property that might contain participant info
+      Object.keys(channel).forEach(key => {
+        const value = channel[key];
+        if (typeof value === 'object' && value !== null) {
+          console.log(`Checking ${key}:`, value);
+        }
+      });
+    }
+    
+    console.log('Final members:', members);
+    console.log('Length:', members.length);
+    
+    return members;
+  };
+
+  const handlePayment = async () => {
+    if (!paymentAmount || !currentAccount) return;
+
+    setIsProcessingPayment(true);
+    setPaymentError(null);
+    setPaymentSuccess(false);
+
+    try {
+      const members = getChannelMembers();
+      let recipientAddress = '';
+
+      if (members.length === 0) {
+        throw new Error('No recipients found');
+      } else if (members.length === 1) {
+        recipientAddress = members[0];
+      } else {
+        // Multiple members - use selected recipient
+        if (!selectedRecipient) {
+          throw new Error('Please select a recipient');
+        }
+        recipientAddress = selectedRecipient;
+      }
+
+      console.log('Sending payment to:', recipientAddress);
+      console.log('Amount:', paymentAmount);
+
+      // Convert SUI to MIST (1 SUI = 1,000,000,000 MIST)
+      const amountInMist = Math.floor(parseFloat(paymentAmount) * 1_000_000_000);
+
+      // Create transaction
+      const tx = new Transaction();
+      const [coin] = tx.splitCoins(tx.gas, [amountInMist]);
+      tx.transferObjects([coin], recipientAddress);
+
+      // Execute transaction
+      const { digest } = await signAndExecute({ transaction: tx });
+
+      console.log('Payment successful:', digest);
+      setPaymentSuccess(true);
+
+      // Send a message about the payment
+      const messageContent = `💰 Sent ${paymentAmount} SUI to ${formatAddress(recipientAddress)}`;
+      await sendMessage(channelId, messageContent);
+
+      // Reset form after success
+      setTimeout(() => {
+        setShowPaymentModal(false);
+        setPaymentAmount('');
+        setPaymentSuccess(false);
+        setSelectedRecipient('');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPaymentError(error instanceof Error ? error.message : 'Payment failed');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -914,6 +1051,62 @@ export function Channel({ channelId, onBack }: ChannelProps) {
             >
               {isSendingMessage || isUploading ? 'Sending...' : 'Send'}
             </Button>
+            
+            {/* Dropdown Button */}
+            <div ref={dropdownRef} style={{ position: 'relative' }}>
+              <Button
+                size="3"
+                type="button"
+                variant="soft"
+                onClick={() => setShowDropdown(!showDropdown)}
+                disabled={isSendingMessage || isUploading || !isReady}
+                style={{
+                  backgroundColor: 'var(--color-background-secondary)',
+                  color: 'var(--color-text-primary)',
+                  border: '1px solid var(--color-border-primary)',
+                  minWidth: '40px'
+                }}
+              >
+                ▼
+              </Button>
+              
+              {/* Dropdown Menu */}
+              {showDropdown && (
+                <Box
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    right: 0,
+                    marginBottom: '8px',
+                    backgroundColor: 'var(--color-background-primary)',
+                    border: '1px solid var(--color-border-primary)',
+                    borderRadius: 'var(--radius-2)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    zIndex: 1000,
+                    minWidth: '150px'
+                  }}
+                >
+                  <Flex direction="column" gap="1" p="2">
+                    <Button
+                      size="2"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowPaymentModal(true);
+                        setShowDropdown(false);
+                      }}
+                      style={{
+                        justifyContent: 'flex-start',
+                        color: 'var(--color-text-primary)',
+                        padding: '8px 12px'
+                      }}
+                    >
+                      💰 Pay
+                    </Button>
+                    {/* Future features can be added here */}
+                  </Flex>
+                </Box>
+              )}
+            </div>
           </Flex>
         </form>
       </Box>
@@ -983,6 +1176,121 @@ export function Channel({ channelId, onBack }: ChannelProps) {
           </Flex>
         </Box>
       )}
+
+      {/* Payment Modal */}
+      <Dialog.Root open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <Dialog.Content style={{ maxWidth: 450 }}>
+          <Dialog.Title>Send SUI Payment</Dialog.Title>
+          <Dialog.Description size="2" mb="4">
+            Send SUI tokens to the person you're chatting with.
+          </Dialog.Description>
+
+          <Flex direction="column" gap="3">
+            {/* Amount Input */}
+            <Box>
+              <Text size="2" weight="bold" mb="2" style={{ color: 'var(--color-text-primary)' }}>
+                Amount (SUI)
+              </Text>
+              <TextField.Root
+                type="number"
+                step="0.001"
+                placeholder="0.001"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                disabled={isProcessingPayment}
+                style={{
+                  backgroundColor: 'var(--color-input-background)',
+                  border: '1px solid var(--color-input-border)',
+                  color: 'var(--color-input-text)'
+                }}
+              />
+            </Box>
+
+            {/* Recipient Display */}
+            <Box>
+              <Text size="2" weight="bold" mb="2" style={{ color: 'var(--color-text-primary)' }}>
+                Recipient
+              </Text>
+              {(() => {
+                const members = getChannelMembers();
+                if (members.length === 0) {
+                  return (
+                    <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+                      No recipients found
+                    </Text>
+                  );
+                } else if (members.length === 1) {
+                  return (
+                    <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                      {formatAddress(members[0])}
+                    </Text>
+                  );
+                } else {
+                  return (
+                    <Select.Root value={selectedRecipient} onValueChange={setSelectedRecipient}>
+                      <Select.Trigger
+                        style={{
+                          backgroundColor: 'var(--color-input-background)',
+                          border: '1px solid var(--color-input-border)',
+                          color: 'var(--color-input-text)'
+                        }}
+                      />
+                      <Select.Content>
+                        {members.map((member) => (
+                          <Select.Item key={member} value={member}>
+                            {formatAddress(member)}
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Root>
+                  );
+                }
+              })()}
+            </Box>
+
+            {/* Error Message */}
+            {paymentError && (
+              <Text size="2" style={{ color: 'var(--color-error)' }}>
+                {paymentError}
+              </Text>
+            )}
+
+            {/* Success Message */}
+            {paymentSuccess && (
+              <Text size="2" style={{ color: 'var(--color-success)' }}>
+                ✅ Payment Successful!
+              </Text>
+            )}
+
+            {/* Action Buttons */}
+            <Flex gap="3" mt="4">
+              <Dialog.Close>
+                <Button
+                  variant="soft"
+                  color="gray"
+                  disabled={isProcessingPayment}
+                  style={{
+                    backgroundColor: 'var(--color-button-secondary)',
+                    color: 'var(--color-text-primary)'
+                  }}
+                >
+                  Cancel
+                </Button>
+              </Dialog.Close>
+              <Button
+                onClick={handlePayment}
+                disabled={!paymentAmount || isProcessingPayment || paymentSuccess}
+                style={{
+                  backgroundColor: 'var(--color-button-primary)',
+                  color: 'var(--color-button-text)'
+                }}
+              >
+                {isProcessingPayment ? 'Processing...' : 'Send Payment'}
+              </Button>
+            </Flex>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Root>
     </Card>
   );
 }
