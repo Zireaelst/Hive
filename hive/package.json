@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@mysten/dapp-kit": "0.18.0",
-    "@mysten/messaging": "file:/Users/toyguntez/ETHGlobal/Hive/hive/mysten-messaging-0.0.2.tgz",
+    "@mysten/messaging": "^0.0.2",
     "@mysten/seal": "0.6.0",
     "@mysten/sui": "1.38.0",
     "@mysten/suins": "^0.9.0",
@@ -33,7 +33,7 @@
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
     "@typescript-eslint/parser": "^8.43.0",
-    "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -44,7 +44,7 @@
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.13",
+    "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.2",
     "vite": "^7.1.5"
