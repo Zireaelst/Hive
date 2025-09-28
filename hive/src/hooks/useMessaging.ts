@@ -4,6 +4,7 @@ import { useSignAndExecuteTransaction, useCurrentAccount, useSuiClient } from '@
 import { useState, useCallback, useEffect } from 'react';
 import { Transaction } from '@mysten/sui/transactions';
 import { DecryptedChannelObject, DecryptMessageResult, ChannelMessagesDecryptedRequest } from '@mysten/messaging';
+import { ChannelMetadata } from '../types/channel';
 
 export const useMessaging = () => {
   const messagingClient = useMessagingClient();
@@ -27,7 +28,7 @@ export const useMessaging = () => {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
 
   // Create channel function
-  const createChannel = useCallback(async (recipientAddresses: string[]) => {
+  const createChannel = useCallback(async (recipientAddresses: string[], metadata?: ChannelMetadata) => {
     if (!messagingClient || !currentAccount) {
       setChannelError('[createChannel] Messaging client or account not available');
       return null;
@@ -83,6 +84,11 @@ export const useMessaging = () => {
         throw new Error('Transaction failed');
       }
 
+      // Store channel metadata if provided
+      if (metadata) {
+        await storeChannelMetadata(channelId, metadata);
+      }
+
       // Refresh channels list
       await fetchChannels();
 
@@ -96,6 +102,28 @@ export const useMessaging = () => {
       setIsCreatingChannel(false);
     }
   }, [messagingClient, currentAccount, signAndExecute, suiClient]);
+
+  // Store channel metadata
+  const storeChannelMetadata = useCallback(async (channelId: string, metadata: ChannelMetadata) => {
+    try {
+      const key = `channel_metadata_${channelId}`;
+      localStorage.setItem(key, JSON.stringify(metadata));
+    } catch (error) {
+      console.error('Error storing channel metadata:', error);
+    }
+  }, []);
+
+  // Get channel metadata
+  const getChannelMetadata = useCallback((channelId: string): ChannelMetadata | null => {
+    try {
+      const key = `channel_metadata_${channelId}`;
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error('Error getting channel metadata:', error);
+      return null;
+    }
+  }, []);
 
   // Fetch channels function
   const fetchChannels = useCallback(async () => {
@@ -316,5 +344,8 @@ export const useMessaging = () => {
     isSendingMessage,
     messagesCursor,
     hasMoreMessages,
+
+    // Channel metadata functions
+    getChannelMetadata,
   };
 };

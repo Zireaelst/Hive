@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Card, Flex, Text, Box, Button, TextField, Badge, Dialog, Select } from '@radix-ui/themes';
+import { Card, Flex, Text, Box, Button, TextField, Badge, Dialog, Select, Tabs } from '@radix-ui/themes';
 import { useMessaging } from '../hooks/useMessaging';
 import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
@@ -8,6 +8,8 @@ import { trackEvent, trackError, AnalyticsEvents } from '../utils/analytics';
 import { walrusService } from '../services/walrusService';
 import { suinsService } from '../services/suinsService';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
+import { GovernancePanel } from './GovernancePanel';
+import { ChannelType } from '../types/channel';
 
 interface ChannelProps {
   channelId: string;
@@ -31,6 +33,7 @@ export function Channel({ channelId, onBack }: ChannelProps) {
     hasMoreMessages,
     channelError,
     isReady,
+    getChannelMetadata,
   } = useMessaging();
 
   const [messageText, setMessageText] = useState('');
@@ -48,6 +51,9 @@ export function Channel({ channelId, onBack }: ChannelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
+  // Channel metadata state
+  const [channelMetadata, setChannelMetadata] = useState<any>(null);
+  
   // Voice recording hook
   const {
     isRecording,
@@ -57,7 +63,6 @@ export function Channel({ channelId, onBack }: ChannelProps) {
     audioUrl,
     error: voiceError,
     availableDevices,
-    selectedDeviceId,
     startRecording,
     stopRecording,
     pauseRecording,
@@ -65,7 +70,6 @@ export function Channel({ channelId, onBack }: ChannelProps) {
     clearRecording,
     formatTime,
     getAudioDevices,
-    setSelectedDevice,
   } = useVoiceRecording();
 
   // Fetch channel and messages on mount
@@ -79,6 +83,10 @@ export function Channel({ channelId, onBack }: ChannelProps) {
       getChannelById(channelId).then(() => {
         fetchMessages(channelId);
       });
+
+      // Load channel metadata
+      const metadata = getChannelMetadata(channelId);
+      setChannelMetadata(metadata);
 
       // Auto-refresh messages every 10 seconds
       const interval = setInterval(() => {
@@ -346,12 +354,6 @@ export function Channel({ channelId, onBack }: ChannelProps) {
     }
   };
 
-  const handleRemoveFile = () => {
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
 
   const downloadFile = async (blobId: string, fileName: string) => {
     try {
@@ -444,6 +446,199 @@ export function Channel({ channelId, onBack }: ChannelProps) {
     }
   };
 
+  const renderMessages = () => (
+    <>
+      {/* Load More Button */}
+      {hasMoreMessages && (
+        <Box style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <Button
+            size="2"
+            variant="soft"
+            onClick={handleLoadMore}
+            disabled={isFetchingMessages}
+          >
+            {isFetchingMessages ? 'Loading...' : 'Load older messages'}
+          </Button>
+        </Box>
+      )}
+
+      {/* Messages */}
+      {messages.length === 0 && !isFetchingMessages ? (
+        <Box style={{ textAlign: 'center', padding: '32px' }}>
+          <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+            No messages yet. Start the conversation!
+          </Text>
+        </Box>
+      ) : (
+        <Flex direction="column" gap="2">
+          {messages.map((message, index) => {
+            const isOwnMessage = message.sender === currentAccount?.address;
+            const senderName = addressNames.get(message.sender) || formatAddress(message.sender);
+            
+            // Parse file information from message
+            const fileInfo = parseFileMessage(message.text);
+            
+            return (
+              <Box
+                key={`${message.sender}-${index}`}
+                style={{
+                  alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
+                  maxWidth: '70%',
+                  backgroundColor: isOwnMessage 
+                    ? 'var(--color-message-own)' 
+                    : 'var(--color-message-other)',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--color-border-primary)'
+                }}
+              >
+                <Flex direction="column" gap="1">
+                  {!isOwnMessage && (
+                    <Text size="1" weight="bold" style={{ color: 'var(--color-text-muted)' }}>
+                      {senderName}
+                    </Text>
+                  )}
+                  
+                  {/* File Display */}
+                  {fileInfo ? (
+                    <Box>
+                      {/* Show file info */}
+                      <Box style={{ 
+                        backgroundColor: 'var(--color-background-secondary)', 
+                        padding: '8px', 
+                        borderRadius: '8px',
+                        marginBottom: '8px'
+                      }}>
+                        <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                          📎 {fileInfo.fileName}
+                        </Text>
+                        <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                          {fileInfo.fileSize}
+                        </Text>
+                        
+                        {/* Download button for different file types */}
+                        {fileInfo.isWalrus ? (
+                          <Flex gap="2" style={{ marginTop: '8px' }}>
+                            <Button
+                              size="1"
+                              variant="soft"
+                              onClick={() => downloadFile(fileInfo.blobId, fileInfo.fileName)}
+                              style={{
+                                backgroundColor: 'var(--color-button-secondary)',
+                                color: 'var(--color-text-primary)',
+                                fontSize: '10px',
+                                padding: '1px 6px'
+                              }}
+                            >
+                              Download
+                            </Button>
+                          </Flex>
+                        ) : fileInfo.isWalrus && fileInfo.blobId && walrusService.isImageFile(fileInfo.fileName) ? (
+                          <Box style={{ marginBottom: '8px' }}>
+                            <img 
+                              src={walrusService.getFileUrl(fileInfo.blobId)} 
+                              alt={fileInfo.fileName}
+                              style={{
+                                maxWidth: '300px',
+                                maxHeight: '300px',
+                                borderRadius: 'var(--radius-2)',
+                                objectFit: 'cover',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => {
+                                // Open image in new tab on click
+                                window.open(walrusService.getFileUrl(fileInfo.blobId), '_blank');
+                              }}
+                            />
+                          </Box>
+                        ) : fileInfo.isIndexedDB ? (
+                          <Flex gap="2" style={{ marginTop: '8px' }}>
+                            <Button
+                              size="1"
+                              variant="soft"
+                              onClick={() => alert('IndexedDB download not supported')}
+                              style={{
+                                backgroundColor: 'var(--color-button-secondary)',
+                                color: 'var(--color-text-primary)',
+                                fontSize: '10px',
+                                padding: '1px 6px'
+                              }}
+                            >
+                              Download
+                            </Button>
+                          </Flex>
+                        ) : fileInfo.isLegacy ? (
+                          <Flex gap="2" style={{ marginTop: '8px' }}>
+                            <Button
+                              size="1"
+                              variant="soft"
+                              onClick={() => {
+                                // Handle legacy file download
+                                const base64 = fileInfo.fileData.includes(',') ? fileInfo.fileData.split(',')[1] : fileInfo.fileData;
+                                const byteCharacters = atob(base64);
+                                const byteNumbers = new Array(byteCharacters.length);
+                                
+                                for (let i = 0; i < byteCharacters.length; i++) {
+                                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                }
+                                
+                                const byteArray = new Uint8Array(byteNumbers);
+                                const blob = new Blob([byteArray]);
+                                const url = window.URL.createObjectURL(blob);
+                                
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = fileInfo.fileName;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(url);
+                              }}
+                              style={{
+                                backgroundColor: 'var(--color-button-secondary)',
+                                color: 'var(--color-text-primary)',
+                                fontSize: '10px',
+                                padding: '1px 6px'
+                              }}
+                            >
+                              Download
+                            </Button>
+                          </Flex>
+                        ) : null}
+                      </Box>
+                      
+                      {/* Show message text if any */}
+                      {fileInfo.message && (
+                        <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                          {fileInfo.message}
+                        </Text>
+                      )}
+                    </Box>
+                  ) : (
+                    /* Regular text message */
+                    <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                      {message.text}
+                    </Text>
+                  )}
+                  
+                  <Text size="1" style={{ 
+                    color: 'var(--color-text-muted)', 
+                    textAlign: isOwnMessage ? 'right' : 'left' 
+                  }}>
+                    {formatTimestamp(message.createdAtMs)}
+                  </Text>
+                </Flex>
+              </Box>
+            );
+          })}
+        </Flex>
+      )}
+      
+      {/* Scroll to bottom ref */}
+      <div ref={messagesEndRef} />
+    </>
+  );
+
   if (!isReady) {
     return (
       <Card>
@@ -479,11 +674,25 @@ export function Channel({ channelId, onBack }: ChannelProps) {
               ← Back
             </Button>
             <Box>
-              <Text size="3" weight="bold" style={{ color: 'var(--color-text-primary)' }}>Channel</Text>
+              <Text size="3" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                {channelMetadata?.name || 'Channel'}
+              </Text>
               {currentChannel && (
                 <Text size="1" style={{ display: 'block', color: 'var(--color-text-muted)' }}>
                   {formatAddress(currentChannel.id.id)}
                 </Text>
+              )}
+              {channelMetadata?.type && (
+                <Badge 
+                  size="1"
+                  color={
+                    channelMetadata.type === ChannelType.DAO_ASSEMBLY ? 'purple' :
+                    channelMetadata.type === ChannelType.TOKEN_GATED ? 'green' :
+                    channelMetadata.type === ChannelType.SUBSCRIPTION ? 'orange' : 'blue'
+                  }
+                >
+                  {channelMetadata.type.replace('_', ' ').toUpperCase()}
+                </Badge>
               )}
             </Box>
           </Flex>
@@ -503,7 +712,15 @@ export function Channel({ channelId, onBack }: ChannelProps) {
         </Flex>
       </Box>
 
-      {/* Messages Area */}
+      {/* Main Content Area */}
+      {channelMetadata?.type === ChannelType.DAO_ASSEMBLY ? (
+        <Tabs.Root defaultValue="messages" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Tabs.List style={{ borderBottom: '1px solid var(--color-border-primary)' }}>
+            <Tabs.Trigger value="messages">Messages</Tabs.Trigger>
+            <Tabs.Trigger value="governance">Governance</Tabs.Trigger>
+          </Tabs.List>
+          
+          <Tabs.Content value="messages" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Box
         style={{
           flex: 1,
@@ -513,310 +730,60 @@ export function Channel({ channelId, onBack }: ChannelProps) {
           flexDirection: 'column',
         }}
       >
-        {/* Load More Button */}
-        {hasMoreMessages && (
-          <Box style={{ textAlign: 'center', marginBottom: '16px' }}>
-            <Button
-              size="2"
-              variant="soft"
-              onClick={handleLoadMore}
-              disabled={isFetchingMessages}
-            >
-              {isFetchingMessages ? 'Loading...' : 'Load older messages'}
-            </Button>
-          </Box>
-        )}
-
-        {/* Messages */}
-        {messages.length === 0 && !isFetchingMessages ? (
-          <Box style={{ textAlign: 'center', padding: '32px' }}>
-            <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
-              No messages yet. Start the conversation!
-            </Text>
-          </Box>
-        ) : (
-          <Flex direction="column" gap="2">
-            {messages.map((message, index) => {
-              const isOwnMessage = message.sender === currentAccount?.address;
-              const fileInfo = parseFileMessage(message.text);
-              
-              return (
-                <Box
-                  key={index}
-                  style={{
-                    alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
-                    maxWidth: '80%',
-                    minWidth: '120px',
-                  }}
-                >
-                  <Box
-                    p="2"
-                    style={{
-                      backgroundColor: isOwnMessage ? 'var(--color-message-own)' : 'var(--color-message-other)',
-                      borderRadius: 'var(--radius-3)',
-                      width: 'fit-content',
-                      maxWidth: '100%',
-                    }}
-                  >
-                    <Flex direction="column" gap="1">
-                      <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                        {isOwnMessage ? 'You' : (addressNames.get(message.sender) || formatAddress(message.sender))}
-                      </Text>
-                      
-                      {fileInfo ? (
-                        <Box>
-                          {/* Show voice message player */}
-                          {fileInfo.isVoice && fileInfo.isWalrus && fileInfo.blobId ? (
-                            <Box style={{ marginBottom: '8px' }}>
-                              <Flex align="center" gap="2" style={{ marginBottom: '8px' }}>
-                                <Text size="2">🎤</Text>
-                                <Text size="2" weight="bold" style={{ color: 'var(--color-message-text)' }}>
-                                  Voice Message
-                                </Text>
-                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                                  ({fileInfo.fileSize})
-                                </Text>
-                              </Flex>
-                              <audio 
-                                controls 
-                                style={{ 
-                                  width: '100%', 
-                                  maxWidth: '300px',
-                                  height: '32px'
-                                }}
-                                src={walrusService.getFileUrl(fileInfo.blobId)}
-                              />
-                              <Flex align="center" gap="2" style={{ marginTop: '4px' }}>
-                                <Button
-                                  size="1"
-                                  variant="soft"
-                                  onClick={() => downloadFile(fileInfo.blobId, `${fileInfo.fileName}.webm`)}
-                                  style={{
-                                    backgroundColor: 'var(--color-button-secondary)',
-                                    color: 'var(--color-text-primary)',
-                                    fontSize: '10px',
-                                    padding: '1px 6px'
-                                  }}
-                                >
-                                  Download
-                                </Button>
-                              </Flex>
-                            </Box>
-                          ) : /* Show image directly if it's a Walrus image */
-                          fileInfo.isWalrus && fileInfo.blobId && walrusService.isImageFile(fileInfo.fileName) ? (
-                            <Box style={{ marginBottom: '8px' }}>
-                              <img 
-                                src={walrusService.getFileUrl(fileInfo.blobId)} 
-                                alt={fileInfo.fileName}
-                                style={{
-                                  maxWidth: '300px',
-                                  maxHeight: '300px',
-                                  borderRadius: 'var(--radius-2)',
-                                  objectFit: 'cover',
-                                  cursor: 'pointer'
-                                }}
-                                onClick={() => {
-                                  // Open image in new tab on click
-                                  window.open(walrusService.getFileUrl(fileInfo.blobId), '_blank');
-                                }}
-                              />
-                              <Flex align="center" gap="2" style={{ marginTop: '4px' }}>
-                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                                  {fileInfo.fileName} ({fileInfo.fileSize})
-                                </Text>
-                                <Button
-                                  size="1"
-                                  variant="soft"
-                                  onClick={() => downloadFile(fileInfo.blobId, fileInfo.fileName)}
-                                  style={{
-                                    backgroundColor: 'var(--color-button-secondary)',
-                                    color: 'var(--color-text-primary)',
-                                    fontSize: '10px',
-                                    padding: '1px 6px'
-                                  }}
-                                >
-                                  Download
-                                </Button>
-                              </Flex>
-                            </Box>
-                          ) : (
-                            /* Show file info for non-image files */
-                            <Flex align="center" gap="2" style={{ marginBottom: '8px' }}>
-                              <Text size="2">📎</Text>
-                              <Text size="2" weight="bold" style={{ color: 'var(--color-message-text)' }}>
-                                {fileInfo.fileName}
-                              </Text>
-                              {fileInfo.fileSize && (
-                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                                  ({fileInfo.fileSize})
-                                </Text>
-                              )}
-                              <Button
-                                size="1"
-                                variant="soft"
-                                onClick={() => {
-                                  if (fileInfo.isWalrus && fileInfo.blobId) {
-                                    // Handle Walrus files
-                                    downloadFile(fileInfo.blobId, fileInfo.fileName);
-                                  } else if (fileInfo.isLegacy) {
-                                    // Handle legacy base64 files
-                                    const base64 = fileInfo.fileData.includes(',') ? fileInfo.fileData.split(',')[1] : fileInfo.fileData;
-                                    const byteCharacters = atob(base64);
-                                    const byteNumbers = new Array(byteCharacters.length);
-                                    
-                                    for (let i = 0; i < byteCharacters.length; i++) {
-                                      byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                    }
-                                    
-                                    const byteArray = new Uint8Array(byteNumbers);
-                                    const blob = new Blob([byteArray]);
-                                    const url = window.URL.createObjectURL(blob);
-                                    
-                                    const link = document.createElement('a');
-                                    link.href = url;
-                                    link.download = fileInfo.fileName;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    window.URL.revokeObjectURL(url);
-                                  } else if (fileInfo.isIndexedDB && fileInfo.fileId) {
-                                    // Handle IndexedDB files (fallback)
-                                    alert('This file format is no longer supported. Please ask the sender to resend the file.');
-                                  }
-                                }}
-                                style={{
-                                  backgroundColor: 'var(--color-button-secondary)',
-                                  color: 'var(--color-text-primary)',
-                                  fontSize: '12px',
-                                  padding: '2px 8px'
-                                }}
-                              >
-                                Download
-                              </Button>
-                            </Flex>
-                          )}
-                          {fileInfo.message && fileInfo.message !== 'File shared' && fileInfo.message !== 'Voice message' && (
-                            <Text size="2" style={{ 
-                              color: 'var(--color-message-text)',
-                              wordWrap: 'break-word',
-                              whiteSpace: 'pre-wrap',
-                              marginBottom: '8px'
-                            }}>
-                              {fileInfo.message}
-                            </Text>
-                          )}
-                        </Box>
-                      ) : (
-                        <Text size="2" style={{ 
-                          color: 'var(--color-message-text)',
-                          wordWrap: 'break-word',
-                          whiteSpace: 'pre-wrap'
-                        }}>
-                          {message.text}
-                        </Text>
-                      )}
-                      
-                      <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                        {formatTimestamp(message.createdAtMs)}
-                      </Text>
-                    </Flex>
-                  </Box>
-                </Box>
-              );
-            })}
-          </Flex>
-        )}
-
-        {/* Scroll anchor */}
-        <div ref={messagesEndRef} />
-
-        {isFetchingMessages && messages.length === 0 && (
-          <Box style={{ textAlign: 'center', padding: '32px' }}>
-            <Text size="2" style={{ color: 'var(--color-text-muted)' }}>Loading messages...</Text>
-          </Box>
-        )}
-      </Box>
-
-      {/* Error Display */}
-      {channelError && (
-        <Box p="3" style={{ borderTop: '1px solid var(--color-border-primary)' }}>
-          <Text size="2" style={{ color: 'var(--color-error)' }}>
-            Error: {channelError}
-          </Text>
+              {renderMessages()}
+            </Box>
+          </Tabs.Content>
+          
+          <Tabs.Content value="governance" style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+            <GovernancePanel 
+              channelId={channelId} 
+              channelName={channelMetadata?.name}
+            />
+          </Tabs.Content>
+        </Tabs.Root>
+      ) : (
+        <Box 
+          style={{ 
+            flex: 1, 
+            overflowY: 'auto',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {renderMessages()}
         </Box>
       )}
 
-      {/* Message Input */}
+      {/* Message Input Area */}
       <Box p="3" style={{ borderTop: '1px solid var(--color-border-primary)' }}>
-        {/* Voice Recording UI */}
+        {/* Voice Recorder */}
         {showVoiceRecorder && (
           <Box p="3" style={{ 
             backgroundColor: 'var(--color-background-secondary)', 
-            borderRadius: 'var(--radius-2)',
-            marginBottom: '8px',
-            border: '1px solid var(--color-border-primary)'
+            borderRadius: 'var(--radius-3)',
+            marginBottom: '16px'
           }}>
             <Flex direction="column" gap="3">
               <Flex justify="between" align="center">
-                <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
-                  🎤 Voice Message
+                <Text size="3" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                  Voice Recorder
                 </Text>
-                <Button
+            <Button
                   size="1"
-                  variant="ghost"
-                  onClick={() => {
-                    setShowVoiceRecorder(false);
-                    clearRecording();
+              variant="soft"
+                  onClick={() => setShowVoiceRecorder(false)}
+                  style={{
+                    backgroundColor: 'var(--color-background-primary)',
+                    color: 'var(--color-text-primary)'
                   }}
-                  style={{ color: 'var(--color-text-muted)' }}
                 >
                   ✕
-                </Button>
-              </Flex>
-              
-              {/* Audio Device Selection */}
-              <Flex direction="column" gap="2">
-                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                  Select Microphone:
-                </Text>
-                <Flex gap="2" align="center" wrap="wrap">
-                  <select
-                    value={selectedDeviceId || ''}
-                    onChange={(e) => setSelectedDevice(e.target.value)}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--color-border-primary)',
-                      backgroundColor: 'var(--color-input-background)',
-                      color: 'var(--color-input-text)',
-                      fontSize: '12px',
-                      minWidth: '200px'
-                    }}
-                  >
-                    {availableDevices.map((device) => (
-                      <option key={device.deviceId} value={device.deviceId}>
-                        {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    size="1"
-                    variant="soft"
-                    onClick={getAudioDevices}
-                    style={{
-                      backgroundColor: 'var(--color-background-secondary)',
-                      color: 'var(--color-text-primary)',
-                      fontSize: '10px',
-                      padding: '2px 6px'
-                    }}
-                  >
-                    🔄 Refresh
-                  </Button>
-                </Flex>
+            </Button>
               </Flex>
               
               {voiceError && (
-                <Text size="1" style={{ color: 'var(--color-error)' }}>
+                <Text size="2" style={{ color: 'var(--color-error)' }}>
                   {voiceError}
                 </Text>
               )}
@@ -824,22 +791,15 @@ export function Channel({ channelId, onBack }: ChannelProps) {
               {!audioBlob ? (
                 <Flex direction="column" gap="2">
                   <Flex align="center" gap="2">
-                    <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+            <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
                       {isRecording ? (isPaused ? 'Paused' : 'Recording...') : 'Ready to record'}
-                    </Text>
+            </Text>
                     {isRecording && (
                       <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
                         {formatTime(recordingTime)}
                       </Text>
                     )}
                   </Flex>
-                  
-                  {/* Debug info */}
-                  <Text size="1" style={{ color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>
-                    Status: {isRecording ? 'Recording' : 'Stopped'} | 
-                    Paused: {isPaused ? 'Yes' : 'No'} | 
-                    Time: {formatTime(recordingTime)}
-                  </Text>
                   
                   <Flex gap="2" align="center" wrap="wrap">
                     {!isRecording ? (
@@ -849,33 +809,12 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                           variant="solid"
                           onClick={startRecording}
                           disabled={!isReady}
-                          style={{
+                  style={{
                             backgroundColor: 'var(--color-error)',
                             color: 'white'
                           }}
                         >
                           🎤 Start Recording
-                        </Button>
-                        <Button
-                          size="1"
-                          variant="soft"
-                          onClick={async () => {
-                            try {
-                              const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                              console.log('Microphone test successful:', stream.getAudioTracks());
-                              alert('Microphone is working! You can start recording.');
-                              stream.getTracks().forEach(track => track.stop());
-                            } catch (error) {
-                              console.error('Microphone test failed:', error);
-                              alert('Microphone test failed: ' + (error as Error).message);
-                            }
-                          }}
-                          style={{
-                            backgroundColor: 'var(--color-background-secondary)',
-                            color: 'var(--color-text-primary)'
-                          }}
-                        >
-                          🔍 Test Mic
                         </Button>
                       </>
                     ) : (
@@ -884,7 +823,7 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                           size="2"
                           variant="solid"
                           onClick={isPaused ? resumeRecording : pauseRecording}
-                          style={{
+                    style={{
                             backgroundColor: 'var(--color-warning)',
                             color: 'white'
                           }}
@@ -896,8 +835,8 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                           variant="solid"
                           onClick={stopRecording}
                           style={{
-                            backgroundColor: 'var(--color-button-primary)',
-                            color: 'var(--color-button-text)'
+                            backgroundColor: 'var(--color-success)',
+                            color: 'white'
                           }}
                         >
                           ⏹️ Stop
@@ -908,86 +847,47 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                 </Flex>
               ) : (
                 <Flex direction="column" gap="2">
-                  <Flex align="center" gap="2">
-                    <Text size="2">🎤</Text>
-                    <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
-                      Voice Message ({formatTime(recordingTime)})
-                    </Text>
-                  </Flex>
-                  
+                  <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                    Recording complete! ({formatTime(recordingTime)})
+                      </Text>
                   <audio 
                     controls 
-                    style={{ 
+                                style={{
                       width: '100%', 
+                                  maxWidth: '300px',
                       height: '32px'
-                    }}
+                                }}
                     src={audioUrl || undefined}
-                  />
-                  
+                              />
                   <Flex gap="2">
-                    <Button
-                      size="1"
-                      variant="soft"
+                                <Button
+                      size="2"
+                      variant="solid"
                       onClick={clearRecording}
-                      style={{
-                        backgroundColor: 'var(--color-button-secondary)',
+                                  style={{
+                                    backgroundColor: 'var(--color-button-secondary)',
                         color: 'var(--color-text-primary)'
                       }}
                     >
-                      🗑️ Delete
+                      🗑️ Clear
                     </Button>
                     <Button
-                      size="1"
-                      variant="soft"
-                      onClick={() => {
-                        clearRecording();
-                        setShowVoiceRecorder(false);
-                      }}
+                      size="2"
+                      variant="solid"
+                      onClick={startRecording}
+                      disabled={!isReady}
                       style={{
-                        backgroundColor: 'var(--color-button-secondary)',
-                        color: 'var(--color-text-primary)'
+                        backgroundColor: 'var(--color-error)',
+                        color: 'white'
                       }}
                     >
-                      ✏️ Re-record
-                    </Button>
+                      🎤 Record Again
+                                </Button>
                   </Flex>
                 </Flex>
               )}
-            </Flex>
-          </Box>
-        )}
-
-        {/* File Preview */}
-        {selectedFile && (
-          <Box p="2" style={{ 
-            backgroundColor: 'var(--color-background-secondary)', 
-            borderRadius: 'var(--radius-2)',
-            marginBottom: '8px',
-            border: '1px solid var(--color-border-primary)'
-          }}>
-            <Flex justify="between" align="center">
-              <Flex align="center" gap="2">
-                <Text size="2">📎</Text>
-                <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
-                  {selectedFile.name} ({walrusService.formatFileSize(selectedFile.size)})
-                </Text>
-                {isUploading && (
-                  <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                    Uploading to Walrus...
-                  </Text>
-                )}
-              </Flex>
-              <Button
-                size="1"
-                variant="ghost"
-                onClick={handleRemoveFile}
-                style={{ color: 'var(--color-text-muted)' }}
-                disabled={isUploading}
-              >
-                ✕
-              </Button>
-            </Flex>
-          </Box>
+                              </Flex>
+                            </Box>
         )}
 
         <form onSubmit={handleSendMessage}>
@@ -999,10 +899,10 @@ export function Channel({ channelId, onBack }: ChannelProps) {
               style={{ display: 'none' }}
               accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
             />
-            <Button
+                              <Button
               size="3"
               type="button"
-              variant="soft"
+                                variant="soft"
               onClick={() => fileInputRef.current?.click()}
               disabled={isSendingMessage || isUploading || !isReady || showVoiceRecorder}
               style={{
@@ -1070,40 +970,37 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                 ▼
               </Button>
               
-              {/* Dropdown Menu */}
               {showDropdown && (
                 <Box
                   style={{
                     position: 'absolute',
                     bottom: '100%',
                     right: 0,
-                    marginBottom: '8px',
-                    backgroundColor: 'var(--color-background-primary)',
+                    backgroundColor: 'var(--color-card-background)',
                     border: '1px solid var(--color-border-primary)',
-                    borderRadius: 'var(--radius-2)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    borderRadius: 'var(--radius-3)',
+                    padding: '8px',
+                    minWidth: '120px',
                     zIndex: 1000,
-                    minWidth: '150px'
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
                   }}
                 >
-                  <Flex direction="column" gap="1" p="2">
+                  <Flex direction="column" gap="1">
                     <Button
                       size="2"
                       variant="ghost"
                       onClick={() => {
                         setShowPaymentModal(true);
                         setShowDropdown(false);
-                      }}
-                      style={{
+                                }}
+                                style={{
                         justifyContent: 'flex-start',
-                        color: 'var(--color-text-primary)',
-                        padding: '8px 12px'
+                        color: 'var(--color-text-primary)'
                       }}
                     >
-                      💰 Pay
-                    </Button>
-                    {/* Future features can be added here */}
-                  </Flex>
+                      💰 Send Payment
+                              </Button>
+                            </Flex>
                 </Box>
               )}
             </div>
@@ -1111,86 +1008,19 @@ export function Channel({ channelId, onBack }: ChannelProps) {
         </form>
       </Box>
 
-      {/* Channel Details */}
-      {currentChannel && (
-        <Box p="3" style={{ 
-          borderTop: '1px solid var(--color-border-primary)',
-          backgroundColor: 'var(--color-background-primary)'
-        }}>
-          <Flex direction="column" gap="2">
-            <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
-              Channel Details
-            </Text>
-            <Flex gap="4" wrap="wrap">
-              <Box>
-                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                  Channel ID
-                </Text>
-                <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
-                  {formatAddress(currentChannel.id.id)}
-                </Text>
-              </Box>
-              <Box>
-                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                  Messages
-                </Text>
-                <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
-                  {currentChannel.messages_count}
-                </Text>
-              </Box>
-              <Box>
-                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                  Members
-                </Text>
-                <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
-                  {currentChannel.auth.member_permissions.contents.length}
-                </Text>
-              </Box>
-              <Box>
-                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                  Created
-                </Text>
-                <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
-                  {formatTimestamp(currentChannel.created_at_ms)}
-                </Text>
-              </Box>
-            </Flex>
-            {currentChannel.last_message && (
-              <Box style={{ marginTop: '0.5rem' }}>
-                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                  Last Message
-                </Text>
-                <Text size="2" style={{ color: 'var(--color-text-primary)', marginTop: '0.25rem' }}>
-                  {currentChannel.last_message.text}
-                </Text>
-                <Flex gap="2" align="center" style={{ marginTop: '0.25rem' }}>
-                  <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                    from: {addressNames.get(currentChannel.last_message.sender) || formatAddress(currentChannel.last_message.sender)}
-                  </Text>
-                  <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                    • {formatTimestamp(currentChannel.last_message.createdAtMs)}
-                  </Text>
-                </Flex>
-              </Box>
-            )}
-          </Flex>
-        </Box>
-      )}
-
       {/* Payment Modal */}
       <Dialog.Root open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <Dialog.Content style={{ maxWidth: 450 }}>
-          <Dialog.Title>Send SUI Payment</Dialog.Title>
-          <Dialog.Description size="2" mb="4">
-            Send SUI tokens to the person you're chatting with.
+        <Dialog.Content style={{ maxWidth: 400 }}>
+          <Dialog.Title>Send Payment</Dialog.Title>
+          <Dialog.Description>
+            Send SUI tokens to channel members
           </Dialog.Description>
 
-          <Flex direction="column" gap="3">
-            {/* Amount Input */}
+          <Flex direction="column" gap="3" style={{ marginTop: '1rem' }}>
             <Box>
               <Text size="2" weight="bold" mb="2" style={{ color: 'var(--color-text-primary)' }}>
                 Amount (SUI)
-              </Text>
+                            </Text>
               <TextField.Root
                 type="number"
                 step="0.001"
@@ -1204,7 +1034,7 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                   color: 'var(--color-input-text)'
                 }}
               />
-            </Box>
+                        </Box>
 
             {/* Recipient Display */}
             <Box>
@@ -1252,14 +1082,14 @@ export function Channel({ channelId, onBack }: ChannelProps) {
             {paymentError && (
               <Text size="2" style={{ color: 'var(--color-error)' }}>
                 {paymentError}
-              </Text>
-            )}
-
+                        </Text>
+                      )}
+                      
             {/* Success Message */}
             {paymentSuccess && (
               <Text size="2" style={{ color: 'var(--color-success)' }}>
                 ✅ Payment Successful!
-              </Text>
+                      </Text>
             )}
 
             {/* Action Buttons */}
@@ -1287,7 +1117,7 @@ export function Channel({ channelId, onBack }: ChannelProps) {
               >
                 {isProcessingPayment ? 'Processing...' : 'Send Payment'}
               </Button>
-            </Flex>
+                    </Flex>
           </Flex>
         </Dialog.Content>
       </Dialog.Root>
