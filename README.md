@@ -82,10 +82,10 @@ graph TB
     end
     
     subgraph "Seal Encryption Layer"
-        C --> D[SessionKey.create()]
+        C --> D[SessionKey.create]
         D --> E[Generate Personal Message]
         E --> F[User Signs Message]
-        F --> G[SessionKey.setPersonalMessageSignature()]
+        F --> G[Set Personal Message Signature]
         G --> H[Session Key Stored Locally]
         H --> I[Seal Client Initialized]
     end
@@ -128,7 +128,7 @@ graph TB
     end
     
     subgraph "Walrus Storage Details"
-        FF[File Upload Request] --> GG[Check File Size < 10MB]
+        FF[File Upload Request] --> GG[Check File Size]
         GG --> HH[POST to Walrus Publisher]
         HH --> II[Get Storage Certificate]
         II --> JJ[Return Blob ID + End Epoch]
