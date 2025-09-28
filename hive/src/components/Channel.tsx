@@ -721,15 +721,15 @@ export function Channel({ channelId, onBack }: ChannelProps) {
           </Tabs.List>
           
           <Tabs.Content value="messages" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Box
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+            <Box
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
               {renderMessages()}
             </Box>
           </Tabs.Content>
@@ -739,6 +739,192 @@ export function Channel({ channelId, onBack }: ChannelProps) {
               channelId={channelId} 
               channelName={channelMetadata?.name}
             />
+          </Tabs.Content>
+        </Tabs.Root>
+      ) : channelMetadata?.type === ChannelType.SUBSCRIPTION ? (
+        <Tabs.Root defaultValue="messages" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Tabs.List style={{ borderBottom: '1px solid var(--color-border-primary)' }}>
+            <Tabs.Trigger value="messages">Messages</Tabs.Trigger>
+            <Tabs.Trigger value="subscription">Subscription</Tabs.Trigger>
+          </Tabs.List>
+          
+          <Tabs.Content value="messages" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <Box
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {renderMessages()}
+            </Box>
+          </Tabs.Content>
+          
+          <Tabs.Content value="subscription" style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+            <Card style={{ padding: '1rem' }}>
+              <Flex direction="column" gap="3">
+                <Text size="4" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                  💳 Subscription Channel
+                </Text>
+                
+                {channelMetadata && (
+                  <Card style={{ padding: '1rem', backgroundColor: 'var(--color-background-secondary)' }}>
+                    <Flex direction="column" gap="2">
+                      <Flex justify="between" align="center">
+                        <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+                          Price:
+                        </Text>
+                        <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                          {channelMetadata.subscriptionPrice} SUI
+                        </Text>
+                      </Flex>
+                      
+                      <Flex justify="between" align="center">
+                        <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+                          Period:
+                        </Text>
+                        <Badge color="orange" size="1">
+                          {channelMetadata.subscriptionPeriod?.toUpperCase()}
+                        </Badge>
+                      </Flex>
+                      
+                      <Flex justify="between" align="center">
+                        <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+                          Creator:
+                        </Text>
+                        <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                          {formatAddress(channelMetadata.creatorAddress)}
+                        </Text>
+                      </Flex>
+                    </Flex>
+                  </Card>
+                )}
+
+                <Card style={{ padding: '1rem', backgroundColor: 'var(--color-background-secondary)' }}>
+                  <Flex direction="column" gap="2">
+                    <Text size="3" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                      🔒 Premium Content
+                    </Text>
+                    <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+                      This channel contains premium content that requires a subscription.
+                    </Text>
+                    <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+                      Subscribe to access exclusive content, discussions, and features.
+                    </Text>
+                  </Flex>
+                </Card>
+
+                <Button
+                  size="3"
+                  style={{
+                    backgroundColor: 'var(--color-button-primary)',
+                    color: 'var(--color-button-text)',
+                    width: '100%'
+                  }}
+                >
+                  Subscribe Now
+                </Button>
+              </Flex>
+            </Card>
+          </Tabs.Content>
+        </Tabs.Root>
+      ) : channelMetadata?.type === ChannelType.TOKEN_GATED ? (
+        <Tabs.Root defaultValue="messages" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Tabs.List style={{ borderBottom: '1px solid var(--color-border-primary)' }}>
+            <Tabs.Trigger value="messages">Messages</Tabs.Trigger>
+            <Tabs.Trigger value="access">Access Control</Tabs.Trigger>
+          </Tabs.List>
+          
+          <Tabs.Content value="messages" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <Box
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {renderMessages()}
+            </Box>
+          </Tabs.Content>
+          
+          <Tabs.Content value="access" style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+            <Card style={{ padding: '1rem' }}>
+              <Flex direction="column" gap="3">
+                <Text size="4" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                  🔐 Token-Gated Channel
+                </Text>
+                
+                {channelMetadata && (
+                  <Card style={{ padding: '1rem', backgroundColor: 'var(--color-background-secondary)' }}>
+                    <Flex direction="column" gap="2">
+                      <Text size="3" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                        Access Requirements
+                      </Text>
+                      
+                      {channelMetadata.accessRules && channelMetadata.accessRules.length > 0 ? (
+                        <Flex direction="column" gap="2">
+                          {channelMetadata.accessRules.map((rule: any, index: number) => (
+                            <Flex key={index} justify="between" align="center" p="2" style={{ 
+                              backgroundColor: 'var(--color-background-tertiary)', 
+                              borderRadius: 'var(--radius-2)' 
+                            }}>
+                              <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                                {rule.type === 'nft_ownership' && `NFT: ${rule.nftCollectionId}`}
+                                {rule.type === 'token_balance' && `Token: ${rule.minBalance} ${rule.contractAddress}`}
+                                {rule.type === 'sui_payment' && `Payment: ${rule.price} SUI`}
+                              </Text>
+                              <Badge 
+                                color={
+                                  rule.type === 'nft_ownership' ? 'purple' :
+                                  rule.type === 'token_balance' ? 'blue' :
+                                  rule.type === 'sui_payment' ? 'green' : 'gray'
+                                } 
+                                size="1"
+                              >
+                                {rule.type.replace('_', ' ').toUpperCase()}
+                              </Badge>
+                            </Flex>
+                          ))}
+                        </Flex>
+                      ) : (
+                        <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+                          No access rules configured yet.
+                        </Text>
+                      )}
+                    </Flex>
+                  </Card>
+                )}
+
+                <Card style={{ padding: '1rem', backgroundColor: 'var(--color-background-secondary)' }}>
+                  <Flex direction="column" gap="2">
+                    <Text size="3" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                      🔒 Exclusive Access
+                    </Text>
+                    <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+                      This channel is restricted to users who meet the access requirements.
+                    </Text>
+                    <Text size="2" style={{ color: 'var(--color-text-muted)' }}>
+                      Connect your wallet to check if you have the required tokens or NFTs.
+                    </Text>
+                  </Flex>
+                </Card>
+
+                <Button
+                  size="3"
+                  style={{
+                    backgroundColor: 'var(--color-button-secondary)',
+                    color: 'var(--color-text-primary)',
+                    width: '100%'
+                  }}
+                >
+                  Check Access
+                </Button>
+              </Flex>
+            </Card>
           </Tabs.Content>
         </Tabs.Root>
       ) : (
