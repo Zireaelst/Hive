@@ -677,74 +677,79 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                       </Text>
                   )}
                       
-                  {/* Location Display */}
+                  {/* Location Display (modern card style) */}
                       {(() => {
                         const loc = parseLocationMessage(message.text);
                         if (!loc) return null;
                         return (
                           <Box>
-                            <Box style={{ 
-                              backgroundColor: 'var(--color-background-secondary)', 
-                              padding: '8px', 
-                              borderRadius: '8px',
-                              marginBottom: '8px'
-                            }}>
-                              <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
-                                📍 Location
-                              </Text>
-                              {loc.label && (
-                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                                  {loc.label}
+                            <Box
+                              style={{
+                                backgroundColor: 'var(--color-background-secondary)',
+                                border: '1px solid var(--color-border-primary)',
+                                borderRadius: '12px',
+                                padding: '10px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                              }}
+                            >
+                              <Flex align="center" gap="2" style={{ marginBottom: '8px' }}>
+                                <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                                  📍 Location
                                 </Text>
-                              )}
-                              <Box style={{ marginTop: '8px' }}>
-                                <img 
-                                  src={getStaticMapUrl(loc.lat, loc.lng)} 
+                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                                  {loc.label || 'Current location'}
+                                </Text>
+                              </Flex>
+                              <Box style={{ position: 'relative' }}>
+                                <img
+                                  src={getStaticMapUrl(loc.lat, loc.lng)}
                                   alt={`Map ${loc.lat},${loc.lng}`}
                                   style={{
-                                    maxWidth: '300px',
-                                    maxHeight: '200px',
-                                    borderRadius: 'var(--radius-2)',
+                                    width: '260px',
+                                    height: '160px',
+                                    borderRadius: '10px',
                                     objectFit: 'cover',
+                                    display: 'block',
+                                    backgroundColor: 'var(--color-background-tertiary)',
                                     cursor: 'pointer'
                                   }}
                                   onClick={() => window.open(getMapsLinkUrl(loc.lat, loc.lng), '_blank')}
                                 />
                               </Box>
-                              <Flex gap="2" style={{ marginTop: '8px' }}>
-                                <Button
-                                  size="1"
-                                  variant="soft"
-                                  onClick={() => window.open(getMapsLinkUrl(loc.lat, loc.lng), '_blank')}
-                                  style={{
-                                    backgroundColor: 'var(--color-button-secondary)',
-                                    color: 'var(--color-text-primary)',
-                                    fontSize: '10px',
-                                    padding: '1px 6px'
-                                  }}
-                                >
-                                  Open in Maps
-                                </Button>
-                                <Button
-                                  size="1"
-                                  variant="soft"
-                                  onClick={() => navigator.clipboard.writeText(getMapsLinkUrl(loc.lat, loc.lng))}
-                                  style={{
-                                    backgroundColor: 'var(--color-button-secondary)',
-                                    color: 'var(--color-text-primary)',
-                                    fontSize: '10px',
-                                    padding: '1px 6px'
-                                  }}
-                                >
-                                  Copy Link
-                                </Button>
+                              <Flex justify="between" align="center" style={{ marginTop: '8px' }}>
+                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                                  {loc.lat.toFixed(6)}, {loc.lng.toFixed(6)}
+                                </Text>
+                                <Flex gap="2">
+                                  <Button
+                                    size="1"
+                                    variant="soft"
+                                    onClick={() => window.open(getMapsLinkUrl(loc.lat, loc.lng), '_blank')}
+                                    style={{
+                                      backgroundColor: 'var(--color-background-primary)',
+                                      color: 'var(--color-text-primary)',
+                                      fontSize: '11px',
+                                      padding: '2px 8px'
+                                    }}
+                                  >
+                                    Open in Maps
+                                  </Button>
+                                  <Button
+                                    size="1"
+                                    variant="soft"
+                                    onClick={() => navigator.clipboard.writeText(getMapsLinkUrl(loc.lat, loc.lng))}
+                                    style={{
+                                      backgroundColor: 'var(--color-background-primary)',
+                                      color: 'var(--color-text-primary)',
+                                      fontSize: '11px',
+                                      padding: '2px 8px'
+                                    }}
+                                  >
+                                    Copy Link
+                                  </Button>
+                                </Flex>
                               </Flex>
                             </Box>
-                            {loc.label === '' && (
-                              <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
-                                {message.text}
-                              </Text>
-                            )}
                           </Box>
                         );
                       })()}
