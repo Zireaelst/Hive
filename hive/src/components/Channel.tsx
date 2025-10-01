@@ -754,117 +754,86 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                         );
                       })()}
 
-                  {/* File Display */}
+                  {/* File / Image Attachments */}
                       {fileInfo ? (
                         <Box>
-                      {/* Show file info */}
-                      <Box style={{ 
-                        backgroundColor: 'var(--color-background-secondary)', 
-                        padding: '8px', 
-                        borderRadius: '8px',
-                        marginBottom: '8px'
-                      }}>
-                        <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
-                          📎 {fileInfo.fileName}
-                        </Text>
-                        <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                          {fileInfo.fileSize}
-                        </Text>
-                        
-                        {/* Download button for different file types */}
-                        {fileInfo.isWalrus ? (
-                          <Flex gap="2" style={{ marginTop: '8px' }}>
-                            <Button
-                              size="1"
-                              variant="soft"
-                              onClick={() => downloadFile(fileInfo.blobId, fileInfo.fileName)}
-                              style={{
-                                backgroundColor: 'var(--color-button-secondary)',
-                                color: 'var(--color-text-primary)',
-                                fontSize: '10px',
-                                padding: '1px 6px'
-                              }}
-                            >
-                              Download
-                            </Button>
-                          </Flex>
-                        ) : fileInfo.isWalrus && fileInfo.blobId && walrusService.isImageFile(fileInfo.fileName) ? (
-                            <Box style={{ marginBottom: '8px' }}>
-                              <img 
-                                src={walrusService.getFileUrl(fileInfo.blobId)} 
-                                alt={fileInfo.fileName}
-                                style={{
-                                  maxWidth: '300px',
-                                  maxHeight: '300px',
-                                  borderRadius: 'var(--radius-2)',
-                                  objectFit: 'cover',
-                                  cursor: 'pointer'
-                                }}
-                                onClick={() => {
-                                  // Open image in new tab on click
-                                  window.open(walrusService.getFileUrl(fileInfo.blobId), '_blank');
-                                }}
-                              />
-                          </Box>
-                        ) : fileInfo.isIndexedDB ? (
-                          <Flex gap="2" style={{ marginTop: '8px' }}>
-                                <Button
-                                  size="1"
-                                  variant="soft"
-                              onClick={() => alert('IndexedDB download not supported')}
-                                  style={{
-                                    backgroundColor: 'var(--color-button-secondary)',
-                                    color: 'var(--color-text-primary)',
-                                    fontSize: '10px',
-                                    padding: '1px 6px'
-                                  }}
-                                >
-                                  Download
-                                </Button>
-                              </Flex>
-                        ) : fileInfo.isLegacy ? (
-                          <Flex gap="2" style={{ marginTop: '8px' }}>
-                              <Button
-                                size="1"
-                                variant="soft"
-                                onClick={() => {
-                                // Handle legacy file download
-                                    const base64 = fileInfo.fileData.includes(',') ? fileInfo.fileData.split(',')[1] : fileInfo.fileData;
-                                    const byteCharacters = atob(base64);
-                                    const byteNumbers = new Array(byteCharacters.length);
-                                    
-                                    for (let i = 0; i < byteCharacters.length; i++) {
-                                      byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                    }
-                                    
-                                    const byteArray = new Uint8Array(byteNumbers);
-                                    const blob = new Blob([byteArray]);
-                                    const url = window.URL.createObjectURL(blob);
-                                    
-                                    const link = document.createElement('a');
-                                    link.href = url;
-                                    link.download = fileInfo.fileName;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    window.URL.revokeObjectURL(url);
-                                }}
-                                style={{
-                                  backgroundColor: 'var(--color-button-secondary)',
-                                  color: 'var(--color-text-primary)',
-                                fontSize: '10px',
-                                padding: '1px 6px'
-                                }}
-                              >
-                                Download
-                              </Button>
-                            </Flex>
-                        ) : null}
-                      </Box>
-                      
-                      {/* Show message text if any */}
-                      {fileInfo.message && (
-                        <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                          {(() => {
+                            const isImage = !!(fileInfo.isWalrus && fileInfo.blobId && walrusService.isImageFile(fileInfo.fileName));
+                            if (isImage) {
+                              return (
+                                <Box>
+                                  <img
+                                    src={walrusService.getFileUrl(fileInfo.blobId)}
+                                    alt={fileInfo.fileName}
+                                    style={{
+                                      maxWidth: '300px',
+                                      maxHeight: '300px',
+                                      borderRadius: '12px',
+                                      objectFit: 'cover',
+                                      display: 'block',
+                                      backgroundColor: 'var(--color-background-tertiary)'
+                                    }}
+                                    onClick={() => window.open(walrusService.getFileUrl(fileInfo.blobId), '_blank')}
+                                  />
+                                  <Flex gap="2" style={{ marginTop: '8px' }}>
+                                    <Button
+                                      size="1"
+                                      variant="soft"
+                                      onClick={() => downloadFile(fileInfo.blobId, fileInfo.fileName)}
+                                      style={{
+                                        backgroundColor: 'var(--color-button-secondary)',
+                                        color: 'var(--color-text-primary)',
+                                        fontSize: '11px',
+                                        padding: '2px 8px'
+                                      }}
+                                    >
+                                      Download
+                                    </Button>
+                                  </Flex>
+                                </Box>
+                              );
+                            }
+                            
+                            // Non-image attachments: minimal card with only Download
+                            return (
+                              <Box style={{ 
+                                backgroundColor: 'var(--color-background-secondary)', 
+                                padding: '8px', 
+                                borderRadius: '8px',
+                                marginBottom: '8px'
+                              }}>
+                                <Flex gap="2" align="center">
+                                  <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                                    📎 File
+                                  </Text>
+                                  <Button
+                                    size="1"
+                                    variant="soft"
+                                    onClick={() => fileInfo.isWalrus && fileInfo.blobId
+                                      ? downloadFile(fileInfo.blobId, fileInfo.fileName)
+                                      : alert('Download not available')}
+                                    style={{
+                                      backgroundColor: 'var(--color-button-secondary)',
+                                      color: 'var(--color-text-primary)',
+                                      fontSize: '11px',
+                                      padding: '2px 8px'
+                                    }}
+                                  >
+                                    Download
+                                  </Button>
+                                </Flex>
+                                {fileInfo.fileSize && (
+                                  <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                                    {fileInfo.fileSize}
+                                  </Text>
+                                )}
+                              </Box>
+                            );
+                          })()}
+
+                          {/* Optional message/caption */}
+                          {fileInfo.message && (
+                            <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
                               {fileInfo.message}
                             </Text>
                           )}
