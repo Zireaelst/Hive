@@ -52,6 +52,13 @@ export function Channel({ channelId, onBack }: ChannelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
+  // Location sharing state
+  const [showLocationDialog, setShowLocationDialog] = useState(false);
+  const [manualLatitude, setManualLatitude] = useState('');
+  const [manualLongitude, setManualLongitude] = useState('');
+  const [manualLocationLabel, setManualLocationLabel] = useState('');
+  const [isSharingLocation, setIsSharingLocation] = useState(false);
+  
   // Channel metadata state
   const [channelMetadata, setChannelMetadata] = useState<any>(null);
   
@@ -443,6 +450,71 @@ export function Channel({ channelId, onBack }: ChannelProps) {
     return null;
   };
 
+  // Parse a location message
+  const parseLocationMessage = (messageText: string) => {
+    // Format: 📍 Location: <lat>,<lng>\n<label>
+    const match = messageText.match(/📍\s*Location:\s*([-+]?\d+(?:\.\d+)?),\s*([-+]?\d+(?:\.\d+)?)(?:\n(.*))?$/s);
+    if (!match) return null;
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    const label = (match[3] || '').trim();
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+    return { lat, lng, label };
+  };
+
+  const getStaticMapUrl = (lat: number, lng: number) => {
+    // OpenStreetMap static map (no key)
+    const zoom = 15;
+    const size = '300x200';
+    return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${zoom}&size=${size}&markers=${lat},${lng},red-pushpin`;
+  };
+
+  const getMapsLinkUrl = (lat: number, lng: number) => `https://www.google.com/maps?q=${lat},${lng}`;
+
+  const buildLocationMessage = (lat: number, lng: number, label?: string) => {
+    const safeLabel = (label || '').trim();
+    return `📍 Location: ${lat},${lng}${safeLabel ? `\n${safeLabel}` : ''}`;
+  };
+
+  const sendLocation = async (lat: number, lng: number, label?: string) => {
+    const msg = buildLocationMessage(lat, lng, label);
+    setIsSharingLocation(true);
+    try {
+      await sendMessage(channelId, msg);
+      trackEvent(AnalyticsEvents.MESSAGE_SENT, {
+        channel_id: channelId,
+        message_length: msg.length,
+        has_location: 1,
+      });
+    } catch (e) {
+      console.error('Send location error:', e);
+      trackError('message_send', 'send_location_failed', { channel_id: channelId });
+    } finally {
+      setIsSharingLocation(false);
+    }
+  };
+
+  const requestAndSendCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setShowLocationDialog(true);
+      return;
+    }
+    setIsSharingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        await sendLocation(latitude, longitude, 'Current location');
+        setIsSharingLocation(false);
+      },
+      (err) => {
+        console.warn('Geolocation error:', err);
+        setIsSharingLocation(false);
+        setShowLocationDialog(true);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   const handleLoadMore = () => {
     if (messagesCursor && !isFetchingMessages) {
       isLoadingOlderRef.current = true;
@@ -605,117 +677,163 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                       </Text>
                   )}
                       
-                  {/* File Display */}
-                      {fileInfo ? (
-                        <Box>
-                      {/* Show file info */}
-                      <Box style={{ 
-                        backgroundColor: 'var(--color-background-secondary)', 
-                        padding: '8px', 
-                        borderRadius: '8px',
-                        marginBottom: '8px'
-                      }}>
-                        <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
-                          📎 {fileInfo.fileName}
-                        </Text>
-                        <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
-                          {fileInfo.fileSize}
-                        </Text>
-                        
-                        {/* Download button for different file types */}
-                        {fileInfo.isWalrus ? (
-                          <Flex gap="2" style={{ marginTop: '8px' }}>
-                            <Button
-                              size="1"
-                              variant="soft"
-                              onClick={() => downloadFile(fileInfo.blobId, fileInfo.fileName)}
+                  {/* Location Display (modern card style) */}
+                      {(() => {
+                        const loc = parseLocationMessage(message.text);
+                        if (!loc) return null;
+                        return (
+                          <Box>
+                            <Box
                               style={{
-                                backgroundColor: 'var(--color-button-secondary)',
-                                color: 'var(--color-text-primary)',
-                                fontSize: '10px',
-                                padding: '1px 6px'
+                                backgroundColor: 'var(--color-background-secondary)',
+                                border: '1px solid var(--color-border-primary)',
+                                borderRadius: '12px',
+                                padding: '10px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
                               }}
                             >
-                              Download
-                            </Button>
-                          </Flex>
-                        ) : fileInfo.isWalrus && fileInfo.blobId && walrusService.isImageFile(fileInfo.fileName) ? (
-                            <Box style={{ marginBottom: '8px' }}>
-                              <img 
-                                src={walrusService.getFileUrl(fileInfo.blobId)} 
-                                alt={fileInfo.fileName}
-                                style={{
-                                  maxWidth: '300px',
-                                  maxHeight: '300px',
-                                  borderRadius: 'var(--radius-2)',
-                                  objectFit: 'cover',
-                                  cursor: 'pointer'
-                                }}
-                                onClick={() => {
-                                  // Open image in new tab on click
-                                  window.open(walrusService.getFileUrl(fileInfo.blobId), '_blank');
-                                }}
-                              />
-                          </Box>
-                        ) : fileInfo.isIndexedDB ? (
-                          <Flex gap="2" style={{ marginTop: '8px' }}>
-                                <Button
-                                  size="1"
-                                  variant="soft"
-                              onClick={() => alert('IndexedDB download not supported')}
-                                  style={{
-                                    backgroundColor: 'var(--color-button-secondary)',
-                                    color: 'var(--color-text-primary)',
-                                    fontSize: '10px',
-                                    padding: '1px 6px'
-                                  }}
-                                >
-                                  Download
-                                </Button>
+                              <Flex align="center" gap="2" style={{ marginBottom: '8px' }}>
+                                <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+                                  📍 Location
+                                </Text>
+                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                                  {loc.label || 'Current location'}
+                                </Text>
                               </Flex>
-                        ) : fileInfo.isLegacy ? (
-                          <Flex gap="2" style={{ marginTop: '8px' }}>
-                              <Button
-                                size="1"
-                                variant="soft"
-                                onClick={() => {
-                                // Handle legacy file download
-                                    const base64 = fileInfo.fileData.includes(',') ? fileInfo.fileData.split(',')[1] : fileInfo.fileData;
-                                    const byteCharacters = atob(base64);
-                                    const byteNumbers = new Array(byteCharacters.length);
-                                    
-                                    for (let i = 0; i < byteCharacters.length; i++) {
-                                      byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                    }
-                                    
-                                    const byteArray = new Uint8Array(byteNumbers);
-                                    const blob = new Blob([byteArray]);
-                                    const url = window.URL.createObjectURL(blob);
-                                    
-                                    const link = document.createElement('a');
-                                    link.href = url;
-                                    link.download = fileInfo.fileName;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    window.URL.revokeObjectURL(url);
-                                }}
-                                style={{
-                                  backgroundColor: 'var(--color-button-secondary)',
-                                  color: 'var(--color-text-primary)',
-                                fontSize: '10px',
-                                padding: '1px 6px'
-                                }}
-                              >
-                                Download
-                              </Button>
-                            </Flex>
-                        ) : null}
-                      </Box>
-                      
-                      {/* Show message text if any */}
-                      {fileInfo.message && (
-                        <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                              <Box style={{ position: 'relative' }}>
+                                <img
+                                  src={getStaticMapUrl(loc.lat, loc.lng)}
+                                  alt={`Map ${loc.lat},${loc.lng}`}
+                                  style={{
+                                    width: '260px',
+                                    height: '160px',
+                                    borderRadius: '10px',
+                                    objectFit: 'cover',
+                                    display: 'block',
+                                    backgroundColor: 'var(--color-background-tertiary)',
+                                    cursor: 'pointer'
+                                  }}
+                                  onClick={() => window.open(getMapsLinkUrl(loc.lat, loc.lng), '_blank')}
+                                />
+                              </Box>
+                              <Flex justify="between" align="center" style={{ marginTop: '8px' }}>
+                                <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                                  {loc.lat.toFixed(6)}, {loc.lng.toFixed(6)}
+                                </Text>
+                                <Flex gap="2">
+                                  <Button
+                                    size="1"
+                                    variant="soft"
+                                    onClick={() => window.open(getMapsLinkUrl(loc.lat, loc.lng), '_blank')}
+                                    style={{
+                                      backgroundColor: 'var(--color-background-primary)',
+                                      color: 'var(--color-text-primary)',
+                                      fontSize: '11px',
+                                      padding: '2px 8px'
+                                    }}
+                                  >
+                                    Open in Maps
+                                  </Button>
+                                  <Button
+                                    size="1"
+                                    variant="soft"
+                                    onClick={() => navigator.clipboard.writeText(getMapsLinkUrl(loc.lat, loc.lng))}
+                                    style={{
+                                      backgroundColor: 'var(--color-background-primary)',
+                                      color: 'var(--color-text-primary)',
+                                      fontSize: '11px',
+                                      padding: '2px 8px'
+                                    }}
+                                  >
+                                    Copy Link
+                                  </Button>
+                                </Flex>
+                              </Flex>
+                            </Box>
+                          </Box>
+                        );
+                      })()}
+
+                  {/* File / Image Attachments */}
+                      {fileInfo ? (
+                        <Box>
+                          {(() => {
+                            const isImage = !!(fileInfo.isWalrus && fileInfo.blobId && walrusService.isImageFile(fileInfo.fileName));
+                            if (isImage) {
+                              return (
+                                <Box>
+                                  <img
+                                    src={walrusService.getFileUrl(fileInfo.blobId)}
+                                    alt={fileInfo.fileName}
+                                    style={{
+                                      maxWidth: '300px',
+                                      maxHeight: '300px',
+                                      borderRadius: '12px',
+                                      objectFit: 'cover',
+                                      display: 'block',
+                                      backgroundColor: 'var(--color-background-tertiary)'
+                                    }}
+                                    onClick={() => window.open(walrusService.getFileUrl(fileInfo.blobId), '_blank')}
+                                  />
+                                  <Flex gap="2" style={{ marginTop: '8px' }}>
+                                    <Button
+                                      size="1"
+                                      variant="soft"
+                                      onClick={() => downloadFile(fileInfo.blobId, fileInfo.fileName)}
+                                      style={{
+                                        backgroundColor: 'var(--color-button-secondary)',
+                                        color: 'var(--color-text-primary)',
+                                        fontSize: '11px',
+                                        padding: '2px 8px'
+                                      }}
+                                    >
+                                      Download
+                                    </Button>
+                                  </Flex>
+                                </Box>
+                              );
+                            }
+                            
+                            // Non-image attachments: minimal card with only Download
+                            return (
+                              <Box style={{ 
+                                backgroundColor: 'var(--color-background-secondary)', 
+                                padding: '8px', 
+                                borderRadius: '8px',
+                                marginBottom: '8px'
+                              }}>
+                                <Flex gap="2" align="center">
+                                  <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
+                                    📎 File
+                                  </Text>
+                                  <Button
+                                    size="1"
+                                    variant="soft"
+                                    onClick={() => fileInfo.isWalrus && fileInfo.blobId
+                                      ? downloadFile(fileInfo.blobId, fileInfo.fileName)
+                                      : alert('Download not available')}
+                                    style={{
+                                      backgroundColor: 'var(--color-button-secondary)',
+                                      color: 'var(--color-text-primary)',
+                                      fontSize: '11px',
+                                      padding: '2px 8px'
+                                    }}
+                                  >
+                                    Download
+                                  </Button>
+                                </Flex>
+                                {fileInfo.fileSize && (
+                                  <Text size="1" style={{ color: 'var(--color-text-muted)' }}>
+                                    {fileInfo.fileSize}
+                                  </Text>
+                                )}
+                              </Box>
+                            );
+                          })()}
+
+                          {/* Optional message/caption */}
+                          {fileInfo.message && (
+                            <Text size="2" style={{ color: 'var(--color-text-primary)' }}>
                               {fileInfo.message}
                             </Text>
                           )}
@@ -1316,6 +1434,21 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                     >
                       💰 Send Payment
             </Button>
+                    <Button
+                      size="2"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowDropdown(false);
+                        requestAndSendCurrentLocation();
+                      }}
+                      disabled={isSharingLocation}
+                      style={{
+                        justifyContent: 'flex-start',
+                        color: 'var(--color-text-primary)'
+                      }}
+                    >
+                      📍 Share Location
+                    </Button>
                             </Flex>
                 </Box>
               )}
@@ -1518,6 +1651,97 @@ export function Channel({ channelId, onBack }: ChannelProps) {
               }}
             >
               {isInviting ? 'Inviting...' : 'Send Invitation'}
+            </Button>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Root>
+
+      {/* Manual Location Dialog */}
+      <Dialog.Root open={showLocationDialog} onOpenChange={setShowLocationDialog}>
+        <Dialog.Content style={{ maxWidth: 420 }}>
+          <Dialog.Title>Share Location</Dialog.Title>
+          <Dialog.Description>
+            Enter coordinates to share your location.
+          </Dialog.Description>
+          <Flex direction="column" gap="3" style={{ marginTop: '1rem' }}>
+            <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+              Latitude
+            </Text>
+            <TextField.Root
+              placeholder="e.g. 41.0082"
+              value={manualLatitude}
+              onChange={(e) => setManualLatitude(e.target.value)}
+              disabled={isSharingLocation}
+              style={{
+                backgroundColor: 'var(--color-input-background)',
+                border: '1px solid var(--color-input-border)',
+                color: 'var(--color-input-text)'
+              }}
+            />
+            <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+              Longitude
+            </Text>
+            <TextField.Root
+              placeholder="e.g. 28.9784"
+              value={manualLongitude}
+              onChange={(e) => setManualLongitude(e.target.value)}
+              disabled={isSharingLocation}
+              style={{
+                backgroundColor: 'var(--color-input-background)',
+                border: '1px solid var(--color-input-border)',
+                color: 'var(--color-input-text)'
+              }}
+            />
+            <Text size="2" weight="bold" style={{ color: 'var(--color-text-primary)' }}>
+              Label (optional)
+            </Text>
+            <TextField.Root
+              placeholder="Home, Office, ..."
+              value={manualLocationLabel}
+              onChange={(e) => setManualLocationLabel(e.target.value)}
+              disabled={isSharingLocation}
+              style={{
+                backgroundColor: 'var(--color-input-background)',
+                border: '1px solid var(--color-input-border)',
+                color: 'var(--color-input-text)'
+              }}
+            />
+          </Flex>
+          <Flex gap="3" justify="end" style={{ marginTop: '1rem' }}>
+            <Dialog.Close>
+              <Button 
+                variant="soft" 
+                color="gray"
+                disabled={isSharingLocation}
+                style={{
+                  backgroundColor: 'var(--color-button-secondary)',
+                  color: 'var(--color-text-primary)'
+                }}
+              >
+                Cancel
+              </Button>
+            </Dialog.Close>
+            <Button
+              onClick={async () => {
+                const lat = parseFloat(manualLatitude);
+                const lng = parseFloat(manualLongitude);
+                if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                  alert('Please enter valid coordinates.');
+                  return;
+                }
+                await sendLocation(lat, lng, manualLocationLabel);
+                setShowLocationDialog(false);
+                setManualLatitude('');
+                setManualLongitude('');
+                setManualLocationLabel('');
+              }}
+              disabled={isSharingLocation}
+              style={{
+                backgroundColor: 'var(--color-button-primary)',
+                color: 'var(--color-button-text)'
+              }}
+            >
+              {isSharingLocation ? 'Sharing...' : 'Share'}
             </Button>
           </Flex>
         </Dialog.Content>
