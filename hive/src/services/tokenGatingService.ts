@@ -1,4 +1,3 @@
-import { useSuiClient, useCurrentAccount } from '@mysten/dapp-kit';
 import { AccessRule, AccessRuleType } from '../types/channel';
 
 export class TokenGatingService {
@@ -49,6 +48,28 @@ export class TokenGatingService {
   /**
    * Check if user owns required NFT
    */
+  async checkNftOwnership(address: string, nftCollectionId: string): Promise<boolean> {
+    try {
+      const objects = await this.suiClient.getOwnedObjects({
+        owner: address,
+        filter: {
+          StructType: nftCollectionId,
+        },
+        options: {
+          showContent: true,
+        },
+      });
+
+      return objects.data.length > 0;
+    } catch (error) {
+      console.error('Error checking NFT ownership:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if user owns required NFT (internal method)
+   */
   private async checkNFTOwnership(rule: AccessRule): Promise<{ hasAccess: boolean; reason?: string }> {
     if (!rule.nftCollectionId) {
       return { hasAccess: false, reason: 'NFT collection ID not specified' };
@@ -79,7 +100,7 @@ export class TokenGatingService {
   /**
    * Check if user has required token balance
    */
-  private async checkTokenBalance(rule: AccessRule): Promise<{ hasAccess: boolean; reason?: string }> {
+  async checkTokenBalance(rule: AccessRule): Promise<{ hasAccess: boolean; reason?: string }> {
     if (!rule.tokenType || !rule.minBalance) {
       return { hasAccess: false, reason: 'Token type or minimum balance not specified' };
     }
@@ -119,7 +140,7 @@ export class TokenGatingService {
   /**
    * Check if user has made required SUI payment
    */
-  private async checkSUIPayment(rule: AccessRule): Promise<{ hasAccess: boolean; reason?: string }> {
+  private async checkSUIPayment(_rule: AccessRule): Promise<{ hasAccess: boolean; reason?: string }> {
     // This would typically check against a payment contract or database
     // For now, we'll implement a simple check
     return { hasAccess: false, reason: 'SUI payment verification not implemented yet' };

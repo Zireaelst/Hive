@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Flex, Text, Button, Badge, Dialog, TextField, Tabs } from '@radix-ui/themes';
 import { useCurrentAccount, useSuiClient } from '@mysten/dapp-kit';
-import { formatTimestamp, formatAddress } from '../utils/formatters';
 import { ChannelMetadata, AccessRule, AccessRuleType } from '../types/channel';
 import { TokenGatingService } from '../services/tokenGatingService';
 import { useMessaging } from '../hooks/useMessaging';
@@ -35,7 +34,7 @@ export function TokenGatedPanel({ channelId, channelName, channelMetadata }: Tok
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const tokenGatingService = new TokenGatingService(suiClient);
+  const tokenGatingService = new TokenGatingService(suiClient, currentAccount);
 
   useEffect(() => {
     if (currentAccount && channelMetadata?.accessRules) {
@@ -66,12 +65,9 @@ export function TokenGatedPanel({ channelId, channelName, channelMetadata }: Tok
             break;
 
           case AccessRuleType.TOKEN_BALANCE:
-            hasRuleAccess = await tokenGatingService.checkTokenBalance(
-              currentAccount.address, 
-              rule.contractAddress || '', 
-              rule.minBalance || '0'
-            );
-            details = hasRuleAccess 
+            const tokenResult = await tokenGatingService.checkTokenBalance(rule);
+            hasRuleAccess = tokenResult.hasAccess;
+            details = tokenResult.hasAccess 
               ? `✅ You have sufficient token balance: ${rule.minBalance} ${rule.contractAddress}`
               : `❌ Insufficient token balance. Required: ${rule.minBalance} ${rule.contractAddress}`;
             break;

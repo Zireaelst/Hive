@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Flex, Text, Button, Badge, Dialog, TextField, Tabs } from '@radix-ui/themes';
+import { Card, Flex, Text, Button, Badge, Dialog, Tabs } from '@radix-ui/themes';
 import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
 import { formatTimestamp, formatAddress } from '../utils/formatters';

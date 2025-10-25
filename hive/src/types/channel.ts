@@ -22,8 +22,10 @@ export interface AccessRule {
   // For token balance
   tokenType?: string;
   minBalance?: string;
+  contractAddress?: string;
   // For SUI payment
   amount?: string; // in SUI
+  price?: string; // in SUI
   // For governance token
   governanceTokenType?: string;
 }
