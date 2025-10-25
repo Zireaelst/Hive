@@ -2,7 +2,7 @@ import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
 import { Box, Flex, Heading } from "@radix-ui/themes";
 import { SessionKeyProvider } from "./providers/SessionKeyProvider";
 import { MessagingClientProvider } from "./providers/MessagingClientProvider";
-import hivelogo from "./assets/hivelogo.png";
+import puffinLogo from "./assets/puffin-logo.png";
 
 import { CreateChannel } from "./components/CreateChannel";
 import { ChannelList } from "./components/ChannelList";
@@ -76,8 +76,8 @@ function AppContent() {
             {/* Header */}
             <Flex align="center" gap="2" style={{ marginBottom: '1rem' }}>
               <img 
-                src={hivelogo} 
-                alt="Hive" 
+                src={puffinLogo} 
+                alt="Puffin" 
                 style={{ 
                   height: '80px', 
                   width: 'auto' 

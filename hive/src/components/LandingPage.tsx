@@ -1,8 +1,8 @@
 import React from 'react';
 import { Shield, Zap, Users, ArrowRight, MessageSquare, Hexagon, Lock } from 'lucide-react';
 import { ConnectButton } from '@mysten/dapp-kit';
-import hivelogo from '../assets/hivelogo.png';
-import bee3d from '../assets/3d-bee.png';
+import puffinLogo from '../assets/puffin-logo.png';
+import penguin from '../assets/puffin.png';
 
 interface LandingPageProps {
   onStartMessaging: () => void;
@@ -17,8 +17,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <img 
-                src={hivelogo} 
-                alt="Hive" 
+                src={puffinLogo} 
+                alt="Puffin" 
                 className="h-24 w-auto" 
               />
             </div>
@@ -80,11 +80,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
             </div>
             
             <div className="relative">
-              {/* Large 3D Bee with Animation */}
+              {/* Large Penguin with Animation */}
               <div className="absolute top-8 -right-20 z-20 group cursor-pointer">
                 <img 
-                  src={bee3d} 
-                  alt="3D Hive Bee" 
+                  src={penguin} 
+                  alt="Hive Penguin" 
                   className="h-80 w-auto transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:drop-shadow-2xl filter group-hover:brightness-110 group-hover:contrast-110" 
                 />
                 {/* Shimmer Effect */}
@@ -295,8 +295,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
             <div className="col-span-2">
               <div className="flex items-center space-x-2 mb-4">
                 <img 
-                  src={hivelogo} 
-                  alt="Hive" 
+                  src={puffinLogo} 
+                  alt="Puffin" 
                   className="h-24 w-auto" 
                 />
               </div>
