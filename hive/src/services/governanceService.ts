@@ -1,16 +1,11 @@
-import { useSuiClient, useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
-import { Transaction } from '@mysten/sui/transactions';
+// Governance service for handling DAO operations
 import { GovernanceProposal, VoteResult } from '../types/channel';
 
 export class GovernanceService {
-  private suiClient: any;
   private currentAccount: any;
-  private signAndExecute: any;
 
-  constructor(suiClient: any, currentAccount: any, signAndExecute: any) {
-    this.suiClient = suiClient;
+  constructor(_suiClient: any, currentAccount: any, _signAndExecute: any) {
     this.currentAccount = currentAccount;
-    this.signAndExecute = signAndExecute;
   }
 
   /**

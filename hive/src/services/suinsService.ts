@@ -12,7 +12,7 @@ class SuinsService {
     });
 
     this.suinsClient = new SuinsClient({
-      client: suiClient,
+      client: suiClient as any,
       network: 'testnet',
     });
   }
