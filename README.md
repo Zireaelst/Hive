@@ -1,4 +1,4 @@
-# 🐝 Hive - Decentralized Web3 Messaging
+# Puffin - Decentralized Web3 Messaging
 
 > **Built on Sui Stack Messaging SDK** - The future of private, decentralized communication
 
@@ -965,14 +965,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Walrus Team** for the decentralized storage solution
 - **BSA Community** for the hackathon opportunity
 
-## 📞 Support
-
-- **Discord**: [Sui Discord](https://discord.com/channels/916379725201563759/1417696942074630194)
-- **GitHub Issues**: [Report bugs or request features](https://github.com/your-username/hive/issues)
-- **Documentation**: [Sui Stack Messaging SDK Docs](https://github.com/MystenLabs/sui-stack-messaging-sdk)
-
 ---
 
-**Built with ❤️ for the Sui x BSA Hackathon**
-
-*Experience the future of Web3 messaging with Hive - where privacy meets innovation.*
+**Built with ❤️ for the Sui**
+**Message privacy. Stay puffin.** 
