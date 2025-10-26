@@ -43,15 +43,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl md:text-6xl font-bold text-gray-900 leading-tight mb-6" style={{color: '#1C1C1C'}}>
-                Decentralized
+                Privacy First Decentralized
                 <span className="block" style={{color: '#F7A93A'}}>Messaging</span>
                 <span className="block">with Seal & Walrus</span>
               </h1>
-              
-              <p className="text-xl leading-relaxed" style={{color: 'rgba(28, 28, 28, 0.7)'}}>
-                Experience the future of Web3 messaging with end-to-end encryption powered by Seal, 
-                decentralized storage via Walrus, and lightning-fast transactions on Sui blockchain.
-              </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
                 <button 
