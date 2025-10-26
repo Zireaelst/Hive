@@ -26,7 +26,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
               <img 
                 src={puffinLogo} 
                 alt="Puffin" 
-                className="h-24 w-auto" 
+                className="h-32 w-auto" 
               />
             </div>
             
@@ -363,39 +363,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20" style={{background: 'linear-gradient(to right, #F7A93A, #F47A36)'}}>
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{color: '#FFFFFF'}}>
-            Ready to Experience Web3 Messaging?
-          </h2>
-          <p className="text-xl mb-8" style={{color: 'rgba(255, 255, 255, 0.8)'}}>
-            Join the future of decentralized communication with Seal encryption, Walrus storage, and Sui blockchain.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button 
-            onClick={onStartMessaging}
-              className="inline-flex items-center justify-center px-8 py-4 font-medium rounded-lg transition-colors text-lg"
-              style={{backgroundColor: '#1C1C1C', color: '#FFFFFF'}}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(28, 28, 28, 0.8)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1C1C1C'}
-            >
-              <MessageSquare className="mr-2 h-5 w-5" />
-            Start Messaging
-            </button>
-            <button 
-              className="inline-flex items-center justify-center px-8 py-4 font-medium rounded-lg transition-colors text-lg"
-              style={{backgroundColor: 'rgba(255, 255, 255, 0.2)', color: '#FFFFFF'}}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-            >
-              View on GitHub
-            </button>
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="py-16" style={{backgroundColor: '#1C1C1C'}}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -405,7 +372,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
                 <img 
                   src={puffinLogoWhite} 
                   alt="Puffin" 
-                  className="h-24 w-auto" 
+                  className="h-32 w-auto" 
                 />
               </div>
               <p className="mb-6 max-w-md" style={{color: 'rgba(255, 255, 255, 0.5)'}}>
