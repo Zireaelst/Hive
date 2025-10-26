@@ -51,6 +51,12 @@ Hive is a cutting-edge Web3 messaging application that leverages the complete Su
 - **Cross-Platform**: Available on web, mobile, and desktop
 - **Recoverable**: Sync conversations across devices
 
+## 🔒 Security & Privacy
+
+Puffin implements military-grade security through a multi-layered approach combining client-side encryption, decentralized storage, and on-chain integrity verification. Our privacy-first architecture ensures that even if infrastructure is compromised, your messages remain completely private and secure.
+
+**📋 [View Detailed Security Documentation](./docs/security.md)** - Deep technical overview of our cryptographic protocols, threat model, and security guarantees.
+
 ## 🏗️ Tech Stack
 
 ### Sui Stack Messaging SDK
