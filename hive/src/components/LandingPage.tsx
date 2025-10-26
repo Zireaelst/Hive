@@ -1,11 +1,15 @@
 import React from 'react';
-import { Shield, Zap, Users, ArrowRight, MessageSquare, Hexagon, Lock } from 'lucide-react';
+import { ArrowRight, MessageSquare, Hexagon, Lock } from 'lucide-react';
 import { ConnectButton } from '@mysten/dapp-kit';
 import puffinLogo from '../assets/puffin-logo.png';
 import puffinLogoWhite from '../assets/puffin-logo-white.png';
 import penguin from '../assets/puffin.png';
 import puffinBackground from '../assets/puffin-background.png';
 import puffinChatbox from '../assets/puffin-chatbox.png';
+import puffinPrivacy from '../assets/puffin-priv.png';
+import puffinRunning from '../assets/puffin-running.png';
+import puffinStorage from '../assets/puffin-storage.png';
+import puffinTel from '../assets/puffin-tel.png';
 
 interface LandingPageProps {
   onStartMessaging: () => void;
@@ -141,41 +145,133 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 -mt-16 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{color: '#1C1C1C'}}>
+              Web3 Messaging Features
+            </h2>
+            <p className="text-lg" style={{color: 'rgba(28, 28, 28, 0.7)'}}>
+              Experience the power of decentralized communication with our cutting-edge technology stack
+            </p>
+          </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="group p-8 rounded-2xl transition-colors duration-300" style={{backgroundColor: '#F5F5F5'}}
-                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(247, 169, 58, 0.1)'}
-                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F5F5F5'}>
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform" style={{backgroundColor: 'rgba(247, 169, 58, 0.2)'}}>
-                <Shield className="h-6 w-6" style={{color: '#F7A93A'}} />
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Privacy & Encryption Feature */}
+            <div className="group p-6 rounded-2xl transition-all duration-500 cursor-pointer" 
+                 style={{backgroundColor: '#F5F5F5'}}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.backgroundColor = 'rgba(247, 169, 58, 0.1)';
+                   e.currentTarget.style.transform = 'translateY(-8px)';
+                   e.currentTarget.style.boxShadow = '0 20px 40px rgba(247, 169, 58, 0.2)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.backgroundColor = '#F5F5F5';
+                   e.currentTarget.style.transform = 'translateY(0)';
+                   e.currentTarget.style.boxShadow = 'none';
+                 }}>
+              <div className="relative mb-6">
+                <img 
+                  src={puffinPrivacy} 
+                  alt="Privacy & Encryption" 
+                  className="w-20 h-20 mx-auto transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 filter group-hover:brightness-110 group-hover:contrast-110" 
+                />
+                {/* Shimmer Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out"></div>
+                {/* Glow Effect */}
+                <div className="absolute inset-0 rounded-full blur-xl transition-all duration-500 -z-10 group-hover:opacity-100 opacity-0" style={{backgroundColor: 'rgba(247, 169, 58, 0.3)'}}></div>
               </div>
-              <h3 className="text-xl font-semibold mb-4" style={{color: '#1C1C1C'}}>Seal Encryption</h3>
-              <p className="leading-relaxed" style={{color: 'rgba(28, 28, 28, 0.7)'}}>
-                End-to-end encryption powered by Seal with programmable access control policies. Your messages are secured with military-grade cryptography.
+              <h3 className="text-xl font-semibold mb-3 text-center" style={{color: '#1C1C1C'}}>Privacy First</h3>
+              <p className="text-sm leading-relaxed text-center" style={{color: 'rgba(28, 28, 28, 0.7)'}}>
+                End-to-end encryption powered by Seal with programmable access control policies. Your messages are secured with military-grade cryptography that ensures complete privacy.
               </p>
             </div>
             
-            <div className="group p-8 rounded-2xl transition-colors duration-300" style={{backgroundColor: '#F5F5F5'}}
-                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(247, 169, 58, 0.1)'}
-                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F5F5F5'}>
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform" style={{backgroundColor: 'rgba(247, 169, 58, 0.2)'}}>
-                <Zap className="h-6 w-6" style={{color: '#F7A93A'}} />
+            {/* Communication Feature */}
+            <div className="group p-6 rounded-2xl transition-all duration-500 cursor-pointer" 
+                 style={{backgroundColor: '#F5F5F5'}}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.backgroundColor = 'rgba(247, 169, 58, 0.1)';
+                   e.currentTarget.style.transform = 'translateY(-8px)';
+                   e.currentTarget.style.boxShadow = '0 20px 40px rgba(247, 169, 58, 0.2)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.backgroundColor = '#F5F5F5';
+                   e.currentTarget.style.transform = 'translateY(0)';
+                   e.currentTarget.style.boxShadow = 'none';
+                 }}>
+              <div className="relative mb-6">
+                <img 
+                  src={puffinRunning} 
+                  alt="Fast Communication" 
+                  className="w-20 h-20 mx-auto transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 filter group-hover:brightness-110 group-hover:contrast-110" 
+                />
+                {/* Shimmer Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out"></div>
+                {/* Glow Effect */}
+                <div className="absolute inset-0 rounded-full blur-xl transition-all duration-500 -z-10 group-hover:opacity-100 opacity-0" style={{backgroundColor: 'rgba(247, 169, 58, 0.3)'}}></div>
               </div>
-              <h3 className="text-xl font-semibold mb-4" style={{color: '#1C1C1C'}}>Walrus Storage</h3>
-              <p className="leading-relaxed" style={{color: 'rgba(28, 28, 28, 0.7)'}}>
-                Decentralized, content-addressed storage for attachments. Verifiable and permissionless file sharing with encrypted metadata on-chain.
+              <h3 className="text-xl font-semibold mb-3 text-center" style={{color: '#1C1C1C'}}>Lightning Fast</h3>
+              <p className="text-sm leading-relaxed text-center" style={{color: 'rgba(28, 28, 28, 0.7)'}}>
+                Real-time messaging powered by Sui blockchain with instant finality. Experience seamless communication with sub-second message delivery and reliable performance.
               </p>
             </div>
             
-            <div className="group p-8 rounded-2xl transition-colors duration-300" style={{backgroundColor: '#F5F5F5'}}
-                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(247, 169, 58, 0.1)'}
-                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F5F5F5'}>
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform" style={{backgroundColor: 'rgba(247, 169, 58, 0.2)'}}>
-                <Users className="h-6 w-6" style={{color: '#F7A93A'}} />
+            {/* Storage Feature */}
+            <div className="group p-6 rounded-2xl transition-all duration-500 cursor-pointer" 
+                 style={{backgroundColor: '#F5F5F5'}}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.backgroundColor = 'rgba(247, 169, 58, 0.1)';
+                   e.currentTarget.style.transform = 'translateY(-8px)';
+                   e.currentTarget.style.boxShadow = '0 20px 40px rgba(247, 169, 58, 0.2)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.backgroundColor = '#F5F5F5';
+                   e.currentTarget.style.transform = 'translateY(0)';
+                   e.currentTarget.style.boxShadow = 'none';
+                 }}>
+              <div className="relative mb-6">
+                <img 
+                  src={puffinStorage} 
+                  alt="Decentralized Storage" 
+                  className="w-20 h-20 mx-auto transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 filter group-hover:brightness-110 group-hover:contrast-110" 
+                />
+                {/* Shimmer Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out"></div>
+                {/* Glow Effect */}
+                <div className="absolute inset-0 rounded-full blur-xl transition-all duration-500 -z-10 group-hover:opacity-100 opacity-0" style={{backgroundColor: 'rgba(247, 169, 58, 0.3)'}}></div>
               </div>
-              <h3 className="text-xl font-semibold mb-4" style={{color: '#1C1C1C'}}>Sui Blockchain</h3>
-              <p className="leading-relaxed" style={{color: 'rgba(28, 28, 28, 0.7)'}}>
-                Lightning-fast transactions and on-chain message storage. Verifiable, auditable communication with instant finality.
+              <h3 className="text-xl font-semibold mb-3 text-center" style={{color: '#1C1C1C'}}>Walrus Storage</h3>
+              <p className="text-sm leading-relaxed text-center" style={{color: 'rgba(28, 28, 28, 0.7)'}}>
+                Decentralized, content-addressed storage for attachments and files. Verifiable and permissionless file sharing with encrypted metadata stored on-chain.
+              </p>
+            </div>
+            
+            {/* Advanced Features */}
+            <div className="group p-6 rounded-2xl transition-all duration-500 cursor-pointer" 
+                 style={{backgroundColor: '#F5F5F5'}}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.backgroundColor = 'rgba(247, 169, 58, 0.1)';
+                   e.currentTarget.style.transform = 'translateY(-8px)';
+                   e.currentTarget.style.boxShadow = '0 20px 40px rgba(247, 169, 58, 0.2)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.backgroundColor = '#F5F5F5';
+                   e.currentTarget.style.transform = 'translateY(0)';
+                   e.currentTarget.style.boxShadow = 'none';
+                 }}>
+              <div className="relative mb-6">
+                <img 
+                  src={puffinTel} 
+                  alt="Advanced Communications" 
+                  className="w-20 h-20 mx-auto transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 filter group-hover:brightness-110 group-hover:contrast-110" 
+                />
+                {/* Shimmer Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out"></div>
+                {/* Glow Effect */}
+                <div className="absolute inset-0 rounded-full blur-xl transition-all duration-500 -z-10 group-hover:opacity-100 opacity-0" style={{backgroundColor: 'rgba(247, 169, 58, 0.3)'}}></div>
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-center" style={{color: '#1C1C1C'}}>Smart Features</h3>
+              <p className="text-sm leading-relaxed text-center" style={{color: 'rgba(28, 28, 28, 0.7)'}}>
+                Advanced Web3 communication features including governance integration, token-gated channels, and programmable messaging triggered by smart contract events.
               </p>
             </div>
           </div>
