@@ -16,6 +16,105 @@ This section details the security architecture behind Puffin's Decentralized, Pr
 - **Walrus** enforces Decentralized integrity and persistence (what is stored, provably).
 - **Sui** enforces Programmable correctness (who is allowed, under which rules, with auditability).
 
+## Security Architecture Flow
+
+```mermaid
+graph TB
+    subgraph "Client Device (Local)"
+        A[User Opens Puffin] --> B[Wallet Connection]
+        B --> C[Session Key Creation]
+        C --> D[Sign Personal Message]
+        D --> E[Session Key Stored Locally]
+        E --> F[Seal Client Initialized]
+    end
+    
+    subgraph "Message Creation Flow"
+        F --> G[User Creates Message]
+        G --> H{Message Type?}
+        
+        H -->|Text| I[Encrypt with Seal AEAD]
+        H -->|File/Voice| J[Encrypt File Locally]
+        
+        J --> K[Upload Encrypted File to Walrus]
+        K --> L[Receive Blob ID]
+        L --> M[Create Message Reference]
+        M --> I
+        
+        I --> N[Generate Message Key]
+        N --> O[Wrap with Channel Key]
+        O --> P[Add AAD Context]
+        P --> Q[Create Ciphertext]
+    end
+    
+    subgraph "Walrus Storage Layer"
+        K --> R[Publisher Node]
+        R --> S[Content-Addressed Storage]
+        S --> T[Storage Certificate]
+        T --> U[Blob ID + End-Epoch]
+        U --> V[Distributed Network]
+    end
+    
+    subgraph "Sui Blockchain Layer"
+        Q --> W[Create Transaction]
+        W --> X[Policy Verification]
+        X --> Y{Access Allowed?}
+        
+        Y -->|Yes| Z[Store Encrypted Metadata]
+        Y -->|No| AA[Transaction Fails]
+        
+        Z --> BB[Emit Events]
+        BB --> CC[On-Chain Audit Trail]
+        CC --> DD[Message Reference Stored]
+    end
+    
+    subgraph "Message Retrieval Flow"
+        DD --> EE[Recipient Fetches Messages]
+        EE --> FF[Verify Channel Access]
+        FF --> GG[Download Encrypted Metadata]
+        GG --> HH[Unwrap Channel Key]
+        HH --> II[Decrypt Message Key]
+        II --> JJ{Has File Reference?}
+        
+        JJ -->|Yes| KK[Fetch from Walrus by Blob ID]
+        JJ -->|No| LL[Decrypt Text Content]
+        
+        KK --> MM[Verify Blob ID Hash]
+        MM --> NN[Decrypt File Locally]
+        NN --> LL
+        
+        LL --> OO[Display Plaintext Message]
+    end
+    
+    subgraph "Security Guarantees"
+        PP[End-to-End Encryption]
+        QQ[Content-Addressed Integrity]
+        RR[On-Chain Access Control]
+        SS[Forward/Backward Secrecy]
+        TT[Anti-Replay Protection]
+    end
+    
+    subgraph "Threat Mitigation"
+        UU[Compromised Storage] -.->|Cannot read| PP
+        VV[Network Observers] -.->|Cannot decrypt| PP
+        WW[Malicious Relays] -.->|Cannot tamper| QQ
+        XX[Unauthorized Access] -.->|Policy enforced| RR
+        YY[Session Compromise] -.->|Key rotation| SS
+        ZZ[Replay Attacks] -.->|Nonce protection| TT
+    end
+    
+    classDef encryptionBox fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef storageBox fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef blockchainBox fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef securityBox fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef threatBox fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    
+    class I,N,O,P,Q,HH,II,LL encryptionBox
+    class K,R,S,T,U,V,KK,MM,NN storageBox
+    class W,X,Y,Z,BB,CC,DD,EE,FF,GG blockchainBox
+    class PP,QQ,RR,SS,TT securityBox
+    class UU,VV,WW,XX,YY,ZZ threatBox
+```
+
 ## 2) Threat Model
 
 ### Adversaries considered
