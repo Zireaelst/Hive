@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, MessageSquare, Hexagon, Lock, Users, Shield, Coins, Vote } from 'lucide-react';
+import { ArrowRight, MessageSquare, Hexagon, Shield, Coins, Vote } from 'lucide-react';
 import { ConnectButton } from '@mysten/dapp-kit';
 import puffinLogo from '../assets/puffin-logo.png';
 import puffinLogoWhite from '../assets/puffin-logo-white.png';
