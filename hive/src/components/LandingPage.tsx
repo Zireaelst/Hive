@@ -2,7 +2,10 @@ import React from 'react';
 import { Shield, Zap, Users, ArrowRight, MessageSquare, Hexagon, Lock } from 'lucide-react';
 import { ConnectButton } from '@mysten/dapp-kit';
 import puffinLogo from '../assets/puffin-logo.png';
+import puffinLogoWhite from '../assets/puffin-logo-white.png';
 import penguin from '../assets/puffin.png';
+import puffinBackground from '../assets/puffin-background.png';
+import puffinChatbox from '../assets/puffin-chatbox.png';
 
 interface LandingPageProps {
   onStartMessaging: () => void;
@@ -35,11 +38,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center space-x-2 bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium mb-6" style={{backgroundColor: '#F7A93A', color: '#FFFFFF'}}>
-                <span>🚀</span>
-                <span>Powered by Sui Stack Messaging SDK</span>
-              </div>
-              
               <h1 className="text-4xl md:text-6xl font-bold text-gray-900 leading-tight mb-6" style={{color: '#1C1C1C'}}>
                 Decentralized
                 <span className="block" style={{color: '#F7A93A'}}>Messaging</span>
@@ -129,16 +127,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{color: '#1C1C1C'}}>
-              Built on Sui Stack Messaging SDK
-            </h2>
-            <p className="text-xl max-w-2xl mx-auto" style={{color: 'rgba(28, 28, 28, 0.7)'}}>
-              Experience the most advanced Web3 messaging stack with Seal encryption, Walrus storage, and Sui blockchain.
-            </p>
+      <section id="features" className="bg-white">
+        <div className="w-full relative">
+          <div className="text-center">
+            <img 
+              src={puffinBackground} 
+              alt="Built on Sui Stack Messaging SDK" 
+              className="w-full h-auto block" 
+            />
+            {/* Soft gradient overlay at the bottom */}
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none"></div>
           </div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 -mt-16 relative z-10">
           
           <div className="grid md:grid-cols-3 gap-8">
             <div className="group p-8 rounded-2xl transition-colors duration-300" style={{backgroundColor: '#F5F5F5'}}
@@ -226,30 +228,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
             </div>
             
             <div className="relative">
-              <div className="p-1 rounded-2xl" style={{background: 'linear-gradient(to bottom right, #F7A93A, #F47A36)'}}>
-                <div className="rounded-xl p-8" style={{backgroundColor: '#1C1C1C'}}>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm" style={{color: '#F7A93A'}}>🔒 Encrypted Chat</span>
-                      <span className="text-sm" style={{color: 'rgba(255, 255, 255, 0.5)'}}>Online</span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="p-3 rounded-lg max-w-xs ml-auto" style={{backgroundColor: '#F7A93A', color: '#FFFFFF'}}>
-                        <p className="text-sm">Check out this DAO proposal! 🗳️</p>
-                      </div>
-                      
-                      <div className="p-3 rounded-lg max-w-xs" style={{backgroundColor: 'rgba(255, 255, 255, 0.1)', color: '#FFFFFF'}}>
-                        <p className="text-sm">The Seal encryption is incredible - truly private messaging</p>
-                      </div>
-                      
-                      <div className="p-3 rounded-lg max-w-xs ml-auto" style={{backgroundColor: '#F7A93A', color: '#FFFFFF'}}>
-                        <p className="text-sm">Walrus storage makes file sharing so seamless 📎</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {/* Puffin chatbox with subtle effects */}
+              <div className="relative group cursor-pointer">
+                <img 
+                  src={puffinChatbox} 
+                  alt="Advanced Web3 Messaging Features" 
+                  className="w-full h-auto max-w-lg mx-auto transform transition-all duration-500 group-hover:scale-105 group-hover:drop-shadow-2xl filter group-hover:brightness-110 group-hover:contrast-110" 
+                />
+                {/* Glow Effect */}
+                <div className="absolute inset-0 rounded-lg blur-xl transition-all duration-500 -z-10" style={{backgroundColor: 'rgba(247, 169, 58, 0.15)'}}></div>
               </div>
+              
+              {/* Decorative background elements */}
+              <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full opacity-20" style={{backgroundColor: '#F7A93A'}}></div>
+              <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full opacity-10" style={{backgroundColor: '#F47A36'}}></div>
             </div>
           </div>
         </div>
@@ -295,7 +287,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
             <div className="col-span-2">
               <div className="flex items-center space-x-2 mb-4">
                 <img 
-                  src={puffinLogo} 
+                  src={puffinLogoWhite} 
                   alt="Puffin" 
                   className="h-24 w-auto" 
                 />
@@ -318,7 +310,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
             <div>
               <h3 className="font-medium mb-4" style={{color: '#FFFFFF'}}>Company</h3>
               <ul className="space-y-3" style={{color: 'rgba(255, 255, 255, 0.5)'}}>
-                <li><a href="#" className="transition-colors" style={{color: 'rgba(255, 255, 255, 0.5)'}} onMouseEnter={(e) => e.currentTarget.style.color = '#F7A93A'} onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'}>About Hive</a></li>
+                <li><a href="#" className="transition-colors" style={{color: 'rgba(255, 255, 255, 0.5)'}} onMouseEnter={(e) => e.currentTarget.style.color = '#F7A93A'} onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'}>About Puffin</a></li>
                 <li><a href="#" className="transition-colors" style={{color: 'rgba(255, 255, 255, 0.5)'}} onMouseEnter={(e) => e.currentTarget.style.color = '#F7A93A'} onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'}>Sui Stack SDK</a></li>
                 <li><a href="#" className="transition-colors" style={{color: 'rgba(255, 255, 255, 0.5)'}} onMouseEnter={(e) => e.currentTarget.style.color = '#F7A93A'} onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'}>Developer Resources</a></li>
                 <li><a href="#" className="transition-colors" style={{color: 'rgba(255, 255, 255, 0.5)'}} onMouseEnter={(e) => e.currentTarget.style.color = '#F7A93A'} onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'}>Community</a></li>
@@ -329,7 +321,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
           <div className="pt-8 mt-8" style={{borderTop: '1px solid rgba(255, 255, 255, 0.1)'}}>
             <div className="flex flex-col md:flex-row justify-between items-center">
               <p className="text-sm" style={{color: 'rgba(255, 255, 255, 0.5)'}}>
-                © 2025 Hive. Powered by Sui Stack Messaging SDK.
+                © 2025 Puffin. Powered by Sui Stack Messaging SDK.
               </p>
               <div className="flex space-x-6 mt-4 md:mt-0">
                 <a href="#" className="text-sm transition-colors" style={{color: 'rgba(255, 255, 255, 0.5)'}} onMouseEnter={(e) => e.currentTarget.style.color = '#F7A93A'} onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'}>Privacy Policy</a>
