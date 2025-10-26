@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, MessageSquare, Hexagon, Lock } from 'lucide-react';
+import { ArrowRight, MessageSquare, Hexagon, Lock, Users, Shield, Coins, Vote } from 'lucide-react';
 import { ConnectButton } from '@mysten/dapp-kit';
 import puffinLogo from '../assets/puffin-logo.png';
 import puffinLogoWhite from '../assets/puffin-logo-white.png';
@@ -287,7 +287,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
                 Advanced Web3 Messaging Features
               </h2>
               <p className="text-lg mb-8" style={{color: 'rgba(255, 255, 255, 0.7)'}}>
-                Hive leverages the complete Sui Stack Messaging SDK for enterprise-grade decentralized communication.
+                Puffin leverages the complete Sui Stack Messaging SDK for enterprise-grade decentralized communication.
               </p>
               
               <div className="space-y-6">
@@ -296,8 +296,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
                     <MessageSquare className="h-4 w-4" style={{color: '#FFFFFF'}} />
                   </div>
                   <div>
-                    <h3 className="font-medium mb-1" style={{color: '#FFFFFF'}}>1:1 & Group Messaging</h3>
-                    <p style={{color: 'rgba(255, 255, 255, 0.5)'}}>Create direct channels or multi-member groups with defined access rules</p>
+                    <h3 className="font-medium mb-1" style={{color: '#FFFFFF'}}>Advanced Channel Types</h3>
+                    <p style={{color: 'rgba(255, 255, 255, 0.5)'}}>Standard channels, token-gated access, DAO assemblies, and premium subscriptions</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{backgroundColor: '#F7A93A'}}>
+                    <Shield className="h-4 w-4" style={{color: '#FFFFFF'}} />
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-1" style={{color: '#FFFFFF'}}>Token-Gated Channels</h3>
+                    <p style={{color: 'rgba(255, 255, 255, 0.5)'}}>Access controlled by NFT ownership or token balance with smart contract integration</p>
                   </div>
                 </div>
                 
@@ -313,11 +323,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartMessaging }) => {
                 
                 <div className="flex items-start space-x-4">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{backgroundColor: '#F7A93A'}}>
-                    <Lock className="h-4 w-4" style={{color: '#FFFFFF'}} />
+                    <Vote className="h-4 w-4" style={{color: '#FFFFFF'}} />
                   </div>
                   <div>
-                    <h3 className="font-medium mb-1" style={{color: '#FFFFFF'}}>Programmable Access</h3>
-                    <p style={{color: 'rgba(255, 255, 255, 0.5)'}}>Use Sui smart contracts to trigger messaging based on events and governance</p>
+                    <h3 className="font-medium mb-1" style={{color: '#FFFFFF'}}>DAO Governance System</h3>
+                    <p style={{color: 'rgba(255, 255, 255, 0.5)'}}>Decentralized decision making with encrypted governance and transparent voting</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{backgroundColor: '#F7A93A'}}>
+                    <Coins className="h-4 w-4" style={{color: '#FFFFFF'}} />
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-1" style={{color: '#FFFFFF'}}>Integrated Payment System</h3>
+                    <p style={{color: 'rgba(255, 255, 255, 0.5)'}}>In-chat payments, subscription management, and encrypted transaction verification</p>
                   </div>
                 </div>
               </div>
